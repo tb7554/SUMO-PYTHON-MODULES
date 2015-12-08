@@ -1,0 +1,9 @@
+eclipse.preferences.version=1
+encoding//sumoFileGen/net2obj.py=utf-8
+encoding//sumoFileGen/sumoMains.py=utf-8
+encoding//sumoFileGen/sumoResults.py=utf-8
+encoding//tools/assign/duaIterate.py=utf-8
+encoding//tools/output/accelerations.py=utf-8
+encoding//tools/output/analyze_teleports.py=utf-8
+encoding//tools/purgatory/kShortest.py=utf-8
+encoding//tools/traci/edge.py=utf-8
