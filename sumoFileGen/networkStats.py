@@ -5,7 +5,7 @@ Created on 9 Dec 2015
 '''
 
 from __future__ import division
-import numpy as nper
+import numpy as np
 
 def networkCV(nodeContainer):
     

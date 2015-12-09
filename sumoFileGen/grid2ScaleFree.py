@@ -293,7 +293,7 @@ class newNetObjContainer():
         
         conflict = checkIntersections(self.edgeTopologies, new_edge)   
                         
-    return conflict
+        return conflict
     
     def checkNodeIntersection(self, edge_proposed):
         
@@ -320,7 +320,7 @@ class newNetObjContainer():
                 
                 if x_node == x_edge:
                     if node == node_1:
-                        conflic = False
+                        conflict = False
                     elif node == node_2:
                         conflict = False
                     else:
