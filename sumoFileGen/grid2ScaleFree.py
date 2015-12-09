@@ -86,7 +86,7 @@ class newNetObjContainer():
         self.edgeTopologies = []
         self.tupleNodes = []
         self.listOfNodes = []
-        self.unnattachedEdges = 0
+        self.unnattachedEdges = num_edges
         self.desiredEdges = num_edges
         
         for junc in newJuncData:
@@ -251,23 +251,23 @@ class newNetObjContainer():
                 
             if e1_type == "vert":
                 if e2_type == "vert":
-                    conflict = checkLineIntersection_bothVertical(line_1, line_2)
+                    conflict = self.checkLineIntersection_bothVertical(line_1, line_2)
                 elif e2_type == "hor":
-                    conflict = checkLineIntersection_firstOneIsVertical_secondHorizontal(line_1, line_2)
+                    conflict = self.checkLineIntersection_firstOneIsVertical_secondHorizontal(line_1, line_2)
                 else:
-                    conflict = checkLineIntersection_firstOneIsVertical_secondDiagonal(line_1, line_2)
+                    conflict = self.checkLineIntersection_firstOneIsVertical_secondDiagonal(line_1, line_2)
             
             elif e1_type == "hor":
                 if e2_type == "vert":
-                    conflict = checkLineIntersection_firstOneIsVertical_secondHorizontal(line_2, line_1)
+                    conflict = self.checkLineIntersection_firstOneIsVertical_secondHorizontal(line_2, line_1)
                 else:
-                    conflict = checkLineIntersection_bothDiagonalOrHorizontal(line_1, line_2)
+                    conflict = self.checkLineIntersection_bothDiagonalOrHorizontal(line_1, line_2)
                     
             else:
                 if e2_type == "vert":
-                    conflict = checkLineIntersection_firstOneIsVertical_secondDiagonal(line_2, line_1)
+                    conflict = self.checkLineIntersection_firstOneIsVertical_secondDiagonal(line_2, line_1)
                 else:
-                    conflict = checkLineIntersection_bothDiagonalOrHorizontal(line_1, line_2)
+                    conflict = self.checkLineIntersection_bothDiagonalOrHorizontal(line_1, line_2)
                     
             if conflict : break
             
@@ -412,8 +412,9 @@ class newNetObjContainer():
                     self.nodeContainer[node_2].addNeighbour(node_1)
                     
                     nodes.pop(0)
+                    self.unnattachedEdges -= 1
                     
-                    print("Edge from %s to %s, of length %d" % (node_1, node_2, distance))
+                    print("%s, %s : %d" % (node_1, node_2, self.unnattachedEdges))
     
     def createEdge(self):
         
@@ -450,8 +451,8 @@ class newNetObjContainer():
                         self.nodeContainer[node_2].addNeighbour(node_1)
                         
                                 # Extract the nodes which form the edge being checked    
-                        node_a1 = edge_proposed[0]
-                        node_a2 = edge_proposed[1]
+                        node_a1 = proposed_edge[0]
+                        node_a2 = proposed_edge[1]
                         
                         # New edge co-ordinates
                         x_a1 = self.nodeContainer[node_a1].x
@@ -461,9 +462,9 @@ class newNetObjContainer():
                         y_a2 = self.nodeContainer[node_a2].y
                                         
                         self.edgeTopologies.append([(x_a1, y_a1), (x_a2, y_a2)])
-                        
+                        self.unnattachedEdges -= 1
                 
-                        print("Edge from %s to %s, of length %d" % (node_1, node_2, distance))            
+                        print("%s, %s : %d" % (node_1, node_2, self.unnattachedEdges))            
     
     def addAllEdges(self):
         
