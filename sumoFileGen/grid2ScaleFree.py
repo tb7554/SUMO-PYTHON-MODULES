@@ -83,6 +83,7 @@ class newNetObjContainer():
         self.maxEdgeLength = L
         self.nodeContainer = {}
         self.edgeContainer = []
+        self.edgeTopologies = []
         self.tupleNodes = []
         self.listOfNodes = []
         self.unnattachedEdges = 0
@@ -103,6 +104,174 @@ class newNetObjContainer():
         
     def addNewNodeObj(self, id, x, y):
         self.nodeContainer.update({id:newNodeObj(id, x, y)})
+    
+    def checkLineIntersection_bothDiagonalOrHorizontal(self, line_1, line_2):
+    
+        intersection_found = False
+        
+        x_a1 = line_1[0][0]
+        y_a1 = line_1[0][1]
+        x_a2 = line_1[1][0]
+        y_a2 = line_1[1][1]
+        
+        x_b1 = line_2[0][0]
+        y_b1 = line_2[0][1]
+        x_b2 = line_2[1][0]
+        y_b2 = line_2[1][1]
+     
+        m_a = (y_a2 - y_a1)/(x_a2 - x_a1) # New edge gradient
+        c_a = y_a1 - m_a*x_a1 # New edge y-intersect
+        
+        m_b = (y_b2 - y_b1)/(x_b2 - x_b1)
+        c_b = y_b1 - m_b*x_b1
+                        
+        # If the lines are parallel, they cannot intersect assuming they do not lie on the same constant (incl. if the gradient is 0 for both and the lines are horizontal)
+        if m_a == m_b:
+            # Check to see if the lines have the exactsame equation, in which case we should check to see if they overlap
+            if (c_a == c_b):
+                # See if either line has one of its nodes lying within the other line (only needs to be checked for one line)
+                if (x_a1 < x_b1 < x_a2) or (x_a1 > x_b1 > x_a2) or (x_a1 < x_b2 < x_a2) or (x_a1 > x_b2 > x_a2):
+                    intersection_found = True                           
+                        
+        # If the lines are not parallel, we need to check if both lines cross the intersection point. We can calculate this. 
+        else:
+            
+            x_intersect = (c_b - c_a)/(m_a - m_b)
+            
+            if ((x_a1 < x_intersect < x_a2) or (x_a1 > x_intersect > x_a2)) and ((x_b1 < x_intersect < x_b2) or (x_b1 > x_intersect > x_b2)):
+                intersection_found = True
+    
+        return intersection_found
+    
+    def checkLineIntersection_firstOneIsVertical_secondDiagonal(self, line_1, line_2):
+        # line -> [(x1,y1),(x2,y2)]
+        
+        intersection_found = False
+        
+        x_a1 = line_1[0][0]
+        y_a1 = line_1[0][1]
+        x_a2 = line_1[1][0]
+        y_a2 = line_1[1][1]
+        
+        x_b1 = line_2[0][0]
+        y_b1 = line_2[0][1]
+        x_b2 = line_2[1][0]
+        y_b2 = line_2[1][1]
+        
+        c_a = x_a1
+        
+        m_b = (y_b2 - y_b1)/(x_b2 - x_b1)
+        c_b = y_b1 - m_b*x_b1
+                
+        # Find the intersection point if the two lines do meet (y* = m_b*c_a + c_b)
+        y_intersect = m_b*c_a + c_b
+    
+        # The lines intersect if BOTH lines pass through the intersection point.
+        # Check if y_intersect lies between the y-coordinates of both nodes. If it lies outside of either line, they cannot conflict.
+        if  (y_b1 < y_intersect < y_b2) or (y_b1 > y_intersect > y_b2):
+            intersection_found = True
+    
+        return intersection_found
+    
+    def checkLineIntersection_firstOneIsVertical_secondHorizontal(self, line_1, line_2):
+        # line -> [(x1,y1),(x2,y2)]
+        
+        intersection_found = False
+        
+        x_a1 = line_1[0][0]
+        y_a1 = line_1[0][1]
+        x_a2 = line_1[1][0]
+        y_a2 = line_1[1][1]
+        
+        x_b1 = line_2[0][0]
+        y_b1 = line_2[0][1]
+        x_b2 = line_2[1][0]
+        y_b2 = line_2[1][1]
+        
+        if  y_b1 < max(y_a1, y_a2) and y_b1 > min(y_a1, y_a2) and x_a1 < max(x_b1, x_b2) and x_a2 > min(x_b1, x_b2):
+            intersection_found = True
+    
+        return intersection_found
+    
+    def checkLineIntersection_bothVertical(self, line_1, line_2):
+        
+        intersection_found = False
+        
+        x_a1 = line_1[0][0]
+        y_a1 = line_1[0][1]
+        x_a2 = line_1[1][0]
+        y_a2 = line_1[1][1]
+        
+        x_b1 = line_2[0][0]
+        y_b1 = line_2[0][1]
+        x_b2 = line_2[1][0]
+        y_b2 = line_2[1][1]
+        
+        if x_b1 == x_b2:       
+            if (max(y_a1, y_a2) > y_b1 and min(y_a1, y_a2) < y_b1) or (max(y_a1, y_a2) > y_b2 and min(y_a1, y_a2) < y_b2):    
+                intersection_found = True
+                
+        return intersection_found
+    
+    def checkIntersections(self, currentEdges, newEdge):
+        
+        e1_x1 = newEdge[0][0]
+        e1_y1 = newEdge[0][1]
+        e1_x2 = newEdge[1][0]
+        e1_y2 = newEdge[1][1]
+        
+        line_1 = [(e1_x1, e1_y1), (e1_x2, e1_y2)]
+        
+        e1_type = None
+        
+        if e1_x1 == e1_x2 :
+            e1_type = "vert"
+        elif e1_y1 == e1_y2 :
+            e1_type = "hor"
+        else:
+            e1_type = "diag"
+        
+        conflict = False
+        
+        for current_edge in currentEdges:
+            
+            e2_x1 = current_edge[0][0]
+            e2_y1 = current_edge[0][1]
+            e2_x2 = current_edge[1][0]
+            e2_y2 = current_edge[1][1]
+            
+            line_2 = [(e2_x1, e2_y1), (e2_x2, e2_y2)]
+            
+            if e2_x1 == e2_x2 :
+                e2_type = "vert"
+            elif e2_y1 == e2_y2 :
+                e2_type = "hor"
+            else:
+                e2_type = "diag"
+                
+            if e1_type == "vert":
+                if e2_type == "vert":
+                    conflict = checkLineIntersection_bothVertical(line_1, line_2)
+                elif e2_type == "hor":
+                    conflict = checkLineIntersection_firstOneIsVertical_secondHorizontal(line_1, line_2)
+                else:
+                    conflict = checkLineIntersection_firstOneIsVertical_secondDiagonal(line_1, line_2)
+            
+            elif e1_type == "hor":
+                if e2_type == "vert":
+                    conflict = checkLineIntersection_firstOneIsVertical_secondHorizontal(line_2, line_1)
+                else:
+                    conflict = checkLineIntersection_bothDiagonalOrHorizontal(line_1, line_2)
+                    
+            else:
+                if e2_type == "vert":
+                    conflict = checkLineIntersection_firstOneIsVertical_secondDiagonal(line_2, line_1)
+                else:
+                    conflict = checkLineIntersection_bothDiagonalOrHorizontal(line_1, line_2)
+                    
+            if conflict : break
+            
+        return conflict                
         
     def checkEdgeIntersection(self, edge_proposed):
         
@@ -120,101 +289,11 @@ class newNetObjContainer():
         x_a2 = self.nodeContainer[node_a2].x
         y_a2 = self.nodeContainer[node_a2].y
         
-        # If x_a1 == x_a2, then we have a vertical line with an infinite gradient
-        if x_a1 == x_a2:
-            
-            # To check this vertical line against all other lines we set constant c_a equal to x_a1 (= x_a2)
-            c_a = x_a1
-            
-            # We can then analyse for every line in the edge container to see if they intersect this vertical line
-            for edge in self.edgeContainer:
-                
-                # Extract the nodes which form the line being checked
-                node_b1 = edge[0]
-                node_b2 = edge[1]
-                
-                # Extract the co-ordinates of the line being checked
-                x_b1 = self.nodeContainer[node_b1].x
-                y_b1 = self.nodeContainer[node_b1].y
-
-                x_b2 = self.nodeContainer[node_b2].x
-                y_b2 = self.nodeContainer[node_b2].y
-                
-                # Check to see if this is also a vertical line, in which case, they can never cross
-                if x_b2 == x_b1:
-                    None
-                
-                # If the line is not vertical, find the equation of the line being checked (y_b = m_b*x_b + c_b)                
-                else:
-                    m_b = (y_b2 - y_b1)/(x_b2 - x_b1)
-                    c_b = y_b1 - m_b*x_b1
-                    
-                    # Find the intersection point if the two lines do meet (y* = m_b*c_a + c_b)
-                    y_intersect = m_b*c_a + c_b
-                    
-                    # The lines intersect if BOTH lines pass through the intersection point.
-                    # Check if y_intersect lies between the y-coordinates of both nodes. If it lies outside of either line, they cannot conflict.
-                    if ((y_a1 < y_intersect < y_a2) or (y_a1 > y_intersect > y_a2)) and ((y_b1 < y_intersect < y_b2) or (y_b1 > y_intersect > y_b2)):
-                        # If this condition holds, we have a conflict and the edge should not be included
-                        conflict = True
+        new_edge = [(x_a1, y_a1), (x_a2, y_a2)]
         
-        # If the first line was not vertical, so we find the equation of this line
-        else:
-            
-            m_a = (y_a2 - y_a1)/(x_a2 - x_a1) # New edge gradient
-            c_a = y_a1 - m_a*x_a1 # New edge y-intersect
-        
-            # Check against every edge currently in the system
-            for edge in self.edgeContainer:
-                
-                # Extract the nodes which form the edge to be checked
-                node_b1 = edge[0]
-                node_b2 = edge[1]
-                
-                # Extract node coordinates
-                x_b1 = self.nodeContainer[node_b1].x
-                y_b1 = self.nodeContainer[node_b1].y
-
-                x_b2 = self.nodeContainer[node_b2].x
-                y_b2 = self.nodeContainer[node_b2].y
-                
-                # If x_b1 == x_b2 then this edge is a vertical line
-                if x_b1 == x_b2:
-                
-                    # Set c_b = x_b1 as it is a constant
-                    c_b = x_b1
-                    
-                    # Calculate the y-coordinate at which the lines would intersect
-                    y_intersect = m_a*c_b + c_a
-                    
-                    # The lines intersect if BOTH lines pass through the intersection point.
-                    # Check if y_intersect lies between the y-coordinates of both nodes. If it lies outside of either line, they cannot conflict.
-                    if ((y_a1 < y_intersect < y_a2) or (y_a1 > y_intersect > y_a2)) and ((y_b1 < y_intersect < y_b2) or (y_b1 > y_intersect > y_b2)):
-                        conflict = True
-                
-                # In this case, neither line is vertical. We can continue checking intersection the usual fashion, using the equations for both lines
-                else:
-                    
-                    m_b = (y_b2 - y_b1)/(x_b2 - x_b1)
-                    c_b = y_b1 - m_b*x_b1
-                    
-                    # If the lines are parallel, they cannot intersect assuming they do not lie on the same constant (incl. if the gradient is 0 for both and the lines are horizontal)
-                    if m_a == m_b:
-                        # Check to see if the lines have the exactsame equation, in which case we should check to see if they overlap
-                        if (c_a == c_b):
-                            # See if either line has one of its nodes lying within the other line (only needs to be checked for one line)
-                            if (x_a1 < x_b1 < x_a2) or (x_a1 > x_b1 > x_a2) or (x_a1 < x_b2 < x_a2) or (x_a1 > x_b2 > x_a2):
-                                conflict = True                           
-                    
-                    # If the lines are not parallel, we need to check if both lines cross the intersection point. We can calculate this. 
-                    else:
+        conflict = checkIntersections(self.edgeTopologies, new_edge)   
                         
-                        x_intersect = (c_b - c_a)/(m_a - m_b)
-                        
-                        if ((x_a1 < x_intersect < x_a2) or (x_a1 > x_intersect > x_a2)) and ((x_b1 < x_intersect < x_b2) or (x_b1 > x_intersect > x_b2)):
-                            conflict = True
-                        
-            return conflict
+    return conflict
     
     def checkNodeIntersection(self, edge_proposed):
         
@@ -369,6 +448,20 @@ class newNetObjContainer():
                         self.edgeContainer.append(reverse_edge)
                         self.nodeContainer[node_1].addNeighbour(node_2)
                         self.nodeContainer[node_2].addNeighbour(node_1)
+                        
+                                # Extract the nodes which form the edge being checked    
+                        node_a1 = edge_proposed[0]
+                        node_a2 = edge_proposed[1]
+                        
+                        # New edge co-ordinates
+                        x_a1 = self.nodeContainer[node_a1].x
+                        y_a1 = self.nodeContainer[node_a1].y
+                        
+                        x_a2 = self.nodeContainer[node_a2].x
+                        y_a2 = self.nodeContainer[node_a2].y
+                                        
+                        self.edgeTopologies.append([(x_a1, y_a1), (x_a2, y_a2)])
+                        
                 
                         print("Edge from %s to %s, of length %d" % (node_1, node_2, distance))            
     
