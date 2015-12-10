@@ -1597,7 +1597,7 @@ def plotAlphaVsCarGenRateMeanDelay(netID, carGenRange, alphaRange, penRate=1, fi
                 meanDelay = results["CBR"][penRate][alpha]['delay'][0]
                 mean_delays.append(meanDelay)
             except IOError:
-                print("Cannot find data for alpha=%f and carGen=%f" % (carGen, alpha))
+                print("Cannot find data for alpha=%f and carGen=%f" % (alpha, carGen))
                 mean_delays = prevMeanDelays
                 break
         
@@ -1613,7 +1613,7 @@ def plotAlphaVsCarGenRateMeanDelay(netID, carGenRange, alphaRange, penRate=1, fi
     z_min = z.min()
     z_max = z.max()
     
-    plt.imshow(z, vmin=0, vmax=500, extent=[x.min(), x.max(), y.min(), y.max()], interpolation='bicubic', origin='lower', cmap=retrieveColourScheme('viridis'))
+    plt.imshow(z, vmin=0, vmax=3600, extent=[x.min(), x.max(), y.min(), y.max()], interpolation='bicubic', origin='lower', cmap=retrieveColourScheme('viridis'))
     plt.colorbar()
     
 
