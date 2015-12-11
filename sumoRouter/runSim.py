@@ -23,8 +23,7 @@ directory_name = path_components.pop()
 def covBasedRoutingMain(netID, stepLength, carGenRate, penetrationRate, run, alpha, guiOn = False):
     
     #Object filepaths
-    edgeContainerObject_filepath = ("%s/netObjects/%s_edgeContainer" % (directory_path, netID))
-    juncContainerObject_filepath = ("%s/netObjects/%s_juncContainer" % (directory_path, netID))
+    shortestPaths_filepath = ("%s/netObjects/%s_shortestPaths" % (directory_path, netID))
     loopIDs_filepath = ("%s/netObjects/%s_loopIDs" % (directory_path, netID)) 
     
     # Input filepaths
@@ -38,8 +37,7 @@ def covBasedRoutingMain(netID, stepLength, carGenRate, penetrationRate, run, alp
     summaryOutput_filepath = ("%s/SUMO_Output_Files/summary/summary-%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f-%d.xml" % (directory_path, netID, carGenRate, penetrationRate, alpha, run))
      
     #Load the edgeContainer and juncContainer objects, and the loop IDs
-    edgeContainer = pickleFunc.load_obj(edgeContainerObject_filepath)
-    juncContainer = pickleFunc.load_obj(juncContainerObject_filepath)
+    shortestPaths = pickleFunc.load_obj(shortestPaths_filepath)
     loop_ids = pickleFunc.load_obj(loopIDs_filepath)
     
     # Create a container for vehicle objects

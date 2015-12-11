@@ -47,16 +47,12 @@ class vehObj():
         
 class vehObjContainer():
     
-    def __init__(self, edgeContainer, juncContainer, loop_ids, CBR_alpha):        
+    def __init__(self, sumolibNet, loop_ids, CBR_alpha):        
         # Simulation container
         self.container = {} # The container of vehicle objects (only contains vehicles currently in the simulation)
         
-        # Edge and Junction containers for network informatino (these are not updated with occupancies each timestep
-        self.edgeContainer = edgeContainer
-        self.juncContainer = juncContainer
-        
         # Objects/constants for vehicle routing
-        self.routerObj = vehicleRouter.createRouterObject(edgeContainer, juncContainer) # The vehicle routing object which decides on the best route for a vehicle to take
+        self.routerObj = vehicleRouter.createRouterObject(sumolibNet) # The vehicle routing object which decides on the best route for a vehicle to take
         self.loop_ids = loop_ids # Array of induction loops ids, to notify when a vehicle is approaching a junction
         self.CBR_alpha = CBR_alpha
         
