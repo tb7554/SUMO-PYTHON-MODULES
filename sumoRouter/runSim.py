@@ -46,7 +46,6 @@ def covBasedRoutingMain(netID, stepLength, carGenRate, penetrationRate, run, alp
     # Find a free port for Traci
     traciPORT = checkPorts.getOpenPort()
     # Start a sumo simulation as a subprocess
-    sumoBinary = os.environ["SUMO_BINARY"]
     if guiOn: sumoBinary += "-gui" # Append the gui command if requested 
     
     #configfilepath = ("%s/SUMO_Input_Files/configurationFiles/test.sumocfg" % (directory_path))

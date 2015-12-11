@@ -81,9 +81,6 @@ class createRouterObject():
         
         sigma = 10
         
-        # Convert starting edge starting junction
-        start_junction = self.edgeContainer.container[start_edge].to
-        
         # For every edge leading from the current edge:
         for road_choice in self.juncContainer.container[start_junction].children:
             

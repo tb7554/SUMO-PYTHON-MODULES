@@ -4,12 +4,12 @@ Created on 11 Dec 2015
 @author: tb7554
 '''
 from __future__ import division
-from tools import traci
+import traci
 import numpy as np
 
-class edgeOccupancies:
+class edgeOccupanciesClass:
     
-    def __ini__(self, sumolibnet):
+    def __init__(self, sumolibnet):
         self._net = sumolibnet
         self._edges = sumolibnet.getEdges()
         self._edgeOccupancies = {}
@@ -17,7 +17,7 @@ class edgeOccupancies:
         self._shortEdges = []
         self._edgesDownstream = {}
         
-        self.storeEdgeLengthsAndDownStreamEdges(50)
+        self.storeEdgeLengthsAndDownstreamEdges(10)
         
     def calcEdgeOccupancy(self, edge):
         """ gets average of all lane occupancies for an edge """
@@ -25,14 +25,16 @@ class edgeOccupancies:
         lanes = edge.getLanes()
         numlanes = len(lanes)
         for l in lanes:
-            occ += traci.lane.getLastStepOccupancy(l)
+            occ += traci.lane.getLastStepOccupancy(l.getID())
         occ /= numlanes
         return occ
                     
-    def updateAllEdgeOccupancies(self, minDistance=10):
+    def updateAllEdgeOccupancies(self):
         """ updates the occupancies for all edges, recalculates occupancies for any edges found to be shorter than a minimum specified length """
         for edge in self._edges:
-            self._edgeOccupancies[edge.getID()] = self.calcEdgeOccupancy(edge)
+            oc = self.calcEdgeOccupancy(edge)
+            self._edgeOccupancies[edge.getID()] = oc
+            if oc > 0 : print(edge.getID(), oc)
         for edgeID in self._shortEdges:
             self.calcEdgeOccupancyForMinDistance(edgeID)
             
@@ -46,9 +48,10 @@ class edgeOccupancies:
             if edge._length < minDistance : self.shortEdges.append(edge.getID())
             
             self._edgesDownstream.update({edge.getID():[]})
+            
             downstream = self._net.getDownstreamEdges(edge, minDistance, stopOnTLS)
             for e in downstream:
-                self._edgesDownstream[edge.getID()].append(e[0][0].getID())
+                self._edgesDownstream[edge.getID()].append(e[0].getID())
             
     def getEdgeLengthByID(self, edgeID):
         return self._edgeLengths[edgeID]
@@ -71,5 +74,11 @@ class edgeOccupancies:
             mean_occ += occs[ii] * (lengths[ii]/total_length)
             
         return mean_occ
+    
+    def getShortEdges(self):
+        return self._shortEdges
+    
+    def getEdgeOccupancies(self):
+        return self._edgeOccupancies
             
     
