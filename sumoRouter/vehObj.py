@@ -16,9 +16,7 @@ class vehObj():
     
     def __init__(self, vehID, vehType, route, destination, departTime, router_mode, CBR_alpha):
         # Static vehicle properties
-        self.ID = vehID
-        self.type = vehType
-        self.dest = destination # destination JUNCTION (not edge)
+        self.dest = destination # destination edge        
         self.router_mode = router_mode # sets the vehicle's router mode choice, to enable testing different routing algorithms, or used mixed routing algorithms
         
         if router_mode == "CoverageBasedRouting":
@@ -26,24 +24,11 @@ class vehObj():
         else:
             self.alpha = None
             
-        self.departTime = departTime
-        
-        # Dynamic vehicle properties (change during the simulation)
-        self.route = [] 
-
-        if router_mode == None: 
-            self.route = route
-        else:
-            if route: self.route.append(route[0])
-        
-        self.arrivalTime = None
-        self.tripDuration = None
-                        
-    def updateRouteRecord(self, routeUpdate):
-        
-        if routeUpdate:
-            if routeUpdate[0] != self.route[-1]:
-                self.route.append(routeUpdate[0])
+    def getDestination(self):
+        return self.dest
+    
+    def getRouterMode(self):
+        return self.router_mode
         
 class vehObjContainer():
     
@@ -52,18 +37,15 @@ class vehObjContainer():
         self.container = {} # The container of vehicle objects (only contains vehicles currently in the simulation)
         
         # Objects/constants for vehicle routing
-        self.routerObj = vehicleRouter.createRouterObject(sumolibNet) # The vehicle routing object which decides on the best route for a vehicle to take
+        #self.routerObj = vehicleRouter.createRouterObject(sumolibNet) # The vehicle routing object which decides on the best route for a vehicle to take
         self.loop_ids = loop_ids # Array of induction loops ids, to notify when a vehicle is approaching a junction
         self.CBR_alpha = CBR_alpha
-        
-        # Container for vehicles once they have left the simulation
-        self.resultsContainer = {}
     
     # add a vehicle to the container
     def addVeh(self, vehID, vehType, route, time_step):
         vehRoute = route
         end_edge = route.pop()
-        destination = self.edgeContainer.container[end_edge].to
+        destination = end_edge
 
         if vehType == "HumanCoverageRouted" or vehType == "DriverlessCoverageRouted":
             router_mode = "CoverageBasedRouting"
@@ -80,7 +62,6 @@ class vehObjContainer():
         #print(self.container[vehID].route)
         self.container[vehID].arrivalTime = time_step
         self.container[vehID].tripDuration = time_step - self.container[vehID].departTime
-        self.resultsContainer.update({vehID:self.container[vehID]})
         del self.container[vehID]
         
     def updateVehicles(self, time_step):
@@ -124,5 +105,4 @@ class vehObjContainer():
             for veh in vehicles_approaching_junctions[edge]:
                 if not(self.container[veh].dest == self.edgeContainer.container[edge].to) and self.container[veh].router_mode != None:
                     vehRoute = self.findVehicleRoute(veh, edge)
-                    self.container[veh].updateRouteRecord(vehRoute)
                     traci.vehicle.setRoute(veh, vehRoute)

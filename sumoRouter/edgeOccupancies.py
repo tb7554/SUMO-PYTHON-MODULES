@@ -32,9 +32,7 @@ class edgeOccupanciesClass:
     def updateAllEdgeOccupancies(self):
         """ updates the occupancies for all edges, recalculates occupancies for any edges found to be shorter than a minimum specified length """
         for edge in self._edges:
-            oc = self.calcEdgeOccupancy(edge)
-            self._edgeOccupancies[edge.getID()] = oc
-            if oc > 0 : print(edge.getID(), oc)
+            self._edgeOccupancies[edge.getID()] = self.calcEdgeOccupancy(edge)
         for edgeID in self._shortEdges:
             self.calcEdgeOccupancyForMinDistance(edgeID)
             
@@ -45,7 +43,7 @@ class edgeOccupanciesClass:
         for edge in self._edges:
             self._edgeLengths.update({edge.getID():edge._length})
             
-            if edge._length < minDistance : self.shortEdges.append(edge.getID())
+            if edge._length < minDistance : self._shortEdges.append(edge.getID())
             
             self._edgesDownstream.update({edge.getID():[]})
             
@@ -61,7 +59,7 @@ class edgeOccupanciesClass:
         occs = []
         lengths = []
         occs.append(self.getEdgeLengthByID(edgeID))
-        lengths.append(self.getEdfeLengthByID(edgeID))
+        lengths.append(self.getEdgeLengthByID(edgeID))
         
         for e in downstream:
             occs.append(self.getEdgeOccupancyByID(e))

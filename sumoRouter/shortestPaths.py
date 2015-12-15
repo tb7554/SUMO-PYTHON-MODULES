@@ -84,14 +84,14 @@ class addEdgeWeights2Net:
 
     """ Standalone class for reading netfile in a sumolib net object and adding edge weights """
 
-    def __init__(self, netfile):
-        self._net = readNet(netfile)
+    def __init__(self, net):
+        self._net = net
         self._cost_attribute = 'traveltime'
         self.load_weights()
 
     def load_weights(self):
         # reset weights before loading
-        for e in self.net.getEdges():
+        for e in self._net.getEdges():
             e.cost = e.getLength() / e.getSpeed()
             
     def getNet(self):
@@ -100,14 +100,15 @@ class addEdgeWeights2Net:
     def getCostAttribute(self):
         return self._cost_attribute
 
-class shortestPaths:
+class shortestPathsClass:
     
     """ Contains all the shortest paths between edges in the network """
     
     def __init__(self, net):
-        self._net = net
+        netWithEdgeWeights = addEdgeWeights2Net(net)
+        net = netWithEdgeWeights.getNet()
         self._paths = {}
-        self.findPaths(self._net)
+        self.findPaths(net)
     
     def findPaths(self, net):
         """ Generate all the shortest paths and store in the _paths dict """
@@ -128,7 +129,6 @@ class shortestPaths:
                 while current_edge != None:
                     self._paths[start][end][0].append(current_edge)
                     current_edge = dijkstra_via[current_edge]
-                self._paths[start][end][0].append(start)
                 self._paths[start][end][0].reverse()
             
             edges_evaluated += 1
