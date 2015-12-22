@@ -14,7 +14,7 @@ from sumoRouter import vehicleRouter
 
 class vehObj():
     
-    def __init__(self, vehID, vehType, route, destination, departTime, router_mode, CBR_alpha):
+    def __init__(self, destination, router_mode, CBR_alpha):
         # Static vehicle properties
         self.dest = destination # destination edge        
         self.router_mode = router_mode # sets the vehicle's router mode choice, to enable testing different routing algorithms, or used mixed routing algorithms
@@ -42,7 +42,7 @@ class vehObjContainer():
         self.CBR_alpha = CBR_alpha
     
     # add a vehicle to the container
-    def addVeh(self, vehID, vehType, route, time_step):
+    def addVeh(self, vehID, vehType, route):
         vehRoute = route
         end_edge = route.pop()
         destination = end_edge
@@ -55,24 +55,21 @@ class vehObjContainer():
             router_mode = None
             print("Warning, vehicle type not identified and incorrect router (%s) may have been assigned to vehicle type %s" % (router_mode, vehType))
 
-        self.container.update({vehID : vehObj(vehID, vehType, vehRoute, destination, time_step, router_mode, self.CBR_alpha)})
+        self.container.update({vehID : vehObj(destination, router_mode, self.CBR_alpha)})
     
     # remove a vehicle from the container
-    def remVeh(self, vehID, time_step):
-        #print(self.container[vehID].route)
-        self.container[vehID].arrivalTime = time_step
-        self.container[vehID].tripDuration = time_step - self.container[vehID].departTime
+    def remVeh(self, vehID):
         del self.container[vehID]
         
-    def updateVehicles(self, time_step):
+    def updateVehicles(self):
         arrived = traci.simulation.getArrivedIDList()
         departed = traci.simulation.getDepartedIDList()
         for veh in arrived:
-            self.remVeh(veh, time_step)
+            self.remVeh(veh)
         for veh in departed:
             vehRoute = traci.vehicle.getRoute(veh)
             vehType = traci.vehicle.getTypeID(veh)
-            self.addVeh(veh, vehType, vehRoute, time_step)
+            self.addVeh(veh, vehType, vehRoute)
             
     def vehiclesApproachingJunctions(self):
         vehicles_approaching_junctions = {} 

@@ -30,7 +30,7 @@ class createRouterObject():
         self.ccValues = self.getCoverageControlConstants() # Constants used in coverage control
         
         # Variables used for routing
-        self.edgeOccs = edgeOccupancies.edgeOccupancies(self.net)
+        self.edgeOccs = edgeOccupancies.edgeOccupanciesClass(self.net)
         
         # Temporary Containers (dynamic, usually erased after use)
         self.routeOptionsContainer = {}
