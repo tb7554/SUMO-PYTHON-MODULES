@@ -1567,13 +1567,7 @@ def plotAlphaEffect(gridID, routingMethod, CGR, alphas, penRate=1):
     
     plt.show()
     
-def plotAlphaVsCarGenRateMeanDelay(netID, carGenRange, alphaRange, penRate=1, figNum=1):
-    
-    font = {'family' : 'Times New Roman',
-        'weight' : 'normal',
-        'size'   : 8}
-
-    matplotlib.rc('font', **font)
+def plotAlphaVsCarGenRateMeanDelay(netID, carGenRange, alphaRange, penRate, axis_title_font_size, axis_labels_font_size, figNum=1):
     
     heightWidthRatio = (max(carGenRange)-min(carGenRange))/(max(alphaRange)-min(alphaRange))
     
@@ -1611,27 +1605,40 @@ def plotAlphaVsCarGenRateMeanDelay(netID, carGenRange, alphaRange, penRate=1, fi
     
     z = np.matrix(mean_delays_matrix)
     z_min = z.min()
-    z_max = z.max()
+    z_max = z_min+300
     
-    plt.imshow(z, vmin=0, vmax=3600, extent=[x.min(), x.max(), y.min(), y.max()], interpolation='bicubic', origin='lower', cmap=retrieveColourScheme('viridis'))
-    plt.colorbar()
+    if z_max > 3600:
+        z_min = int(math.floor(z_min/1800)*1800)
+        z_max = int(math.ceil(z_max/1800)*1800)
+        cax = plt.imshow(z, vmin=z_min, vmax=z_max, extent=[x.min(), x.max(), y.min(), y.max()], interpolation='bicubic', origin='lower', cmap=retrieveColourScheme('viridis'))
+        cbar = plt.colorbar(cax, ticks=[z_min, (z_min+z_max)/2 , z_max])
+        cbar.ax.set_yticklabel([str(z_min/3600), str((z_min+z_max)/7200), str(z_max/3600)])
+    else:
+        z_min = int(math.floor(z_min/300)*300)
+        z_max = int(math.ceil(z_max/300)*300)
+        cax = plt.imshow(z, vmin=z_min, vmax=z_max, extent=[x.min(), x.max(), y.min(), y.max()], interpolation='bicubic', origin='lower', cmap=retrieveColourScheme('viridis'))
+        cbar = plt.colorbar(cax, ticks=[z_min, (z_min+z_max)/2 , z_max])
+        cbar.ax.set_yticklabels([str(z_min/60), str((z_min+z_max)/120), '> ' + str(z_max/60)])
     
+    formatGraph(axis_labels_font_size)
 
     #pp.title(r'$\alpha$' + ' Plotted Against\nCar Generation Rate\nand Associated Mean Delay', fontsize=10)
-    plt.xlabel(r'$\alpha$', fontsize=10)
-    plt.ylabel("Car Generation Rate", fontsize=10)
+    plt.xlabel(r'$\alpha$', fontsize=axis_title_font_size)
+    plt.ylabel(r'Car Generation Rate ($\lambda$)', fontsize=axis_title_font_size)
     save_to = ('%s/plots/%s_avcgrd.pdf' % (os.environ['DIRECTORY_PATH'], netID))
     plt.savefig(save_to, bbox_inches='tight')
     #fig_num += 1
     
     plt.show()
 
-def plotMeanDelayVsCarGenRate(netID, carGenRateRange, routingMethods = ["CBR", "DUA_000"], alpha=None, RUI=None, penRate=None):
+def plotMeanDelayVsCarGenRate(netID, carGenRateRange, axis_title_font_size, axis_labels_font_size, routingMethods = ["CBR", "DUA_000"], alpha=None, RUI=None, penRate=None):
     
     plt.figure("meanDelayVsCarGenRate", figsize=(3.4,1.7))
     colour_scheme = retrieveColourScheme('colourBlind')
     
-    plot_num = 0
+    
+    higherBound = 0
+    plot_num = 0    
     
     for method in routingMethods:
         
@@ -1653,55 +1660,77 @@ def plotMeanDelayVsCarGenRate(netID, carGenRateRange, routingMethods = ["CBR", "
                 meanDelay = results["DUA"]['delay'][0]
                 
             mean_delays.append(meanDelay)
+            if meanDelay > higherBound : higherBound = meanDelay
             
         plt.plot(carGenRateRange, mean_delays, lw=2.5, color=colour_scheme[plot_num][0], hold=True)
         plot_num += 1
     
-    formatGraph()
+    formatGraph(axis_labels_font_size)
     
-    plt.xlabel(r'$\lambda$', fontsize=10)
-    plt.ylabel("Mean Delay", fontsize=10)
+    if higherBound > 3600:
+        plt.yticks([x for x in range(0,int(higherBound),3600)], [str(x/3600) for x in range(0, int(higherBound),3600)])
+        plt.ylabel("Mean Delay (Hours)", fontsize=axis_title_font_size)
+    else:
+        plt.yticks([x for x in range(0,int(higherBound),600)], [str(x/60) for x in range(0, int(higherBound),600)])
+        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
+
+    plt.xticks([x for x in range(int(min(carGenRateRange)), int(max(carGenRateRange))+1)], [str(x) for x in range(int(min(carGenRateRange)), int(max(carGenRateRange))+1)] )
+    plt.xlabel(r'Car Generation Rate ($\lambda$)',fontsize=axis_title_font_size)
+
+    plt.axis([min(carGenRateRange),max(carGenRateRange),-100,higherBound])
     
     save_to = ('%s/plots/%s_rmd.pdf' % (os.environ['DIRECTORY_PATH'], netID))
     plt.savefig(save_to, bbox_inches='tight')
     plt.show()
 
-def plotMeanDelayVsPenetrationRate(netID, penRateRange, routingMethods = ["CBR", "DUA_000"], alpha=None, RUI=None, carGenRate=None):
+def plotMeanDelayVsPenetrationRate(netID, penRateRange, carGenRates, routingMethods, axis_title_font_size, axis_labels_font_size, alpha=None, RUI=None):
     
     plt.figure("meanDelayVsPenRate", figsize=(3.4,1.7))
     colour_scheme = retrieveColourScheme('colourBlind')
     
+    higherBound = 0
     plot_num = 0
     
     for method in routingMethods:
         
-        mean_delays = []
+        for carGenRate in carGenRates:
         
-        for penRate in penRateRange:
-            penRate=float("{0:.2f}".format(penRate))
+            mean_delays = []
             
-            if method == "CBR":
-                results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s-PEN-%.2f-ALPHA-%.2f" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, method, penRate, alpha))
-                results = pickleFunc.load_obj(results_data_path)
-                meanDelay = results["CBR"][penRate][alpha]['delay'][0]
-            elif method == "TTRR":
-                results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s-PEN-%.2f-RUI-%d" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, method, penRate, RUI))
-                results = pickleFunc.load_obj(results_data_path)
-                meanDelay = results["TTRR"][penRate][RUI]['delay'][0]
-            else:
-                results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, method))
-                results = pickleFunc.load_obj(results_data_path)
-                meanDelay = results["DUA"]['delay'][0]
+            for penRate in penRateRange:
+                penRate=float("{0:.2f}".format(penRate))
                 
-            mean_delays.append(meanDelay)
+                if method == "CBR":
+                    results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s-PEN-%.2f-ALPHA-%.2f" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, method, penRate, alpha))
+                    results = pickleFunc.load_obj(results_data_path)
+                    meanDelay = results["CBR"][penRate][alpha]['delay'][0]
+                elif method == "TTRR":
+                    results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s-PEN-%.2f-RUI-%d" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, method, penRate, RUI))
+                    results = pickleFunc.load_obj(results_data_path)
+                    meanDelay = results["TTRR"][penRate][RUI]['delay'][0]
+                else:
+                    results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, method))
+                    results = pickleFunc.load_obj(results_data_path)
+                    meanDelay = results["DUA"]['delay'][0]
+                    
+                mean_delays.append(meanDelay)
+                if meanDelay > higherBound : higherBound = meanDelay
+                
+            plt.plot(penRateRange, mean_delays, lw=2.5, color=colour_scheme[plot_num][0], hold=True)
+            plot_num += 1
             
-        plt.plot(penRateRange, mean_delays, lw=2.5, color=colour_scheme[plot_num][0], hold=True)
-        plot_num += 1
+    formatGraph(axis_labels_font_size)
     
-    formatGraph()
-    
-    plt.xlabel(r'Penetration Rate (%)', fontsize=10)
-    plt.ylabel("Mean Delay", fontsize=10)
+    if higherBound > 3600:
+        plt.yticks([x for x in range(0,int(higherBound),3600)], [str(x/3600) for x in range(0, int(higherBound),3600)])
+        plt.ylabel("Mean Delay (Hours)", fontsize=axis_title_font_size)
+    else:
+        plt.yticks([x for x in range(0,int(higherBound),600)], [str(x/60) for x in range(0, int(higherBound),600)])
+        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
+
+    plt.xticks([x*0.01 for x in range(0, int(max(penRateRange)*100)+1,20)], [str(x) for x in range(0, int(max(penRateRange)*100)+1, 20)] )
+    plt.axis([0,1,-100,higherBound])
+    plt.xlabel('Penetration Rate (%)', fontsize=axis_title_font_size)
     
     save_to = ('%s/plots/%s_pmd.pdf' % (os.environ['DIRECTORY_PATH'], netID))
     plt.savefig(save_to, bbox_inches='tight')
@@ -1747,12 +1776,14 @@ def plotDelayOverExpectedTravlTimeVsCarGenRate(netID, carGenRateRange, routingMe
     plt.savefig(save_to, bbox_inches='tight')
     plt.show()
   
-def plotMeanDelayVsCarGenRate_CBRonly(netID, carGenRateRange, alphasRange=[x*0.01 for x in range(5,96,5)], penRate=1):
+def plotMeanDelayVsCarGenRate_CBRonly(netID, carGenRateRange, alphasRange, penRate, axis_title_font_size, axis_labels_font_size):
     
     plt.figure("meanDelayVsCarGenRate_CBRonly", figsize=(3.4,1.7))
     colour_scheme = retrieveColourScheme('colourBlind')
     
     plot_num = 0
+    
+    higherBound = 0
     
     for rate in carGenRateRange:
         
@@ -1765,25 +1796,34 @@ def plotMeanDelayVsCarGenRate_CBRonly(netID, carGenRateRange, alphasRange=[x*0.0
             results = pickleFunc.load_obj(results_data_path)
             meanDelay = results["CBR"][penRate][alpha]['delay'][0]
             mean_delays.append(meanDelay)
+            if float(meanDelay) > higherBound : higherBound = float(meanDelay)
             
         plt.plot(alphasRange, mean_delays, lw=2.5, color=colour_scheme[plot_num][0], hold=True)
         plot_num += 1
     
-    formatGraph()
+    formatGraph(axis_labels_font_size)
     
-    plt.xlabel(r'$\alpha$', fontsize=10)
-    plt.ylabel("Mean Delay", fontsize=10)
+    if higherBound > 3600:
+        plt.yticks([x for x in range(0,int(higherBound),3600)], [str(x/3600) for x in range(0, int(higherBound),3600)])
+        plt.ylabel("Mean Delay (Hours)", fontsize=axis_title_font_size)
+    else:
+        plt.yticks([x for x in range(0,int(higherBound),300)], [str(x/60) for x in range(0, int(higherBound),300)])
+        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
+    
+    plt.xlabel(r"$\alpha$", fontsize=axis_title_font_size)
+    
+    plt.axis([min(alphasRange),max(alphasRange),-100,higherBound])
     
     save_to = ('%s/plots/%s_amd.pdf' % (os.environ['DIRECTORY_PATH'], netID))
     plt.savefig(save_to, bbox_inches='tight')
     plt.show()
 
-def formatGraph():
+def formatGraph(axis_labels_font_size, fontFamily='Times New Roman', fontWeight='normal' ):
     
     # Set matplotlib default font
-    font = {'family' : 'Times New Roman',
-            'weight' : 'normal',
-            'size'   : 8}
+    font = {'family' : fontFamily,
+            'weight' : fontWeight,
+            'size'   : axis_labels_font_size}
     
     matplotlib.rc('font', **font)
     
