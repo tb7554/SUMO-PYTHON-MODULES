@@ -33,9 +33,12 @@ class netStatsClass:
         self.edgeInOutDegrees()
         self.calcEdgeMeanDegree()
         self.calcEdgeCV()
+
         self.nodeInOutDegrees()
         self.calcNodeMeanDegree()
         self.calcNodeCV()
+
+        self.printStats()
     
     def edgeInOutDegrees(self):
         
@@ -59,7 +62,7 @@ class netStatsClass:
         self._edgeInCV = np.std(self._edgeInDegrees)/np.mean(self._edgeInDegrees)
         self._edgeOutCV = np.std(self._edgeOutDegrees)/np.mean(self._edgeOutDegrees)
         self._edgeCV = np.std(self._edgeDegrees)/np.mean(self._edgeDegrees)
-        
+
     def nodeInOutDegrees(self):
         
         self._nodeInDegrees = []
@@ -95,6 +98,5 @@ class netStatsClass:
 
 if __name__ == "__main__":
     
-    netStatsCalculator = netStatsClass("/Users/tb7554/UniversityCloud/Home/workspace/_022_Scalefree-32x32_TLS_/netXMLFiles/Scalefree-32x32.net.xml")
-    
+    netStatsCalculator = netStatsClass("/Users/tb7554/UniversityCloud/Home/workspace/_022_Scalefree-32x32_TLS_/netXMLFiles/Scalefree-32x32.net.xml")    
     netStatsCalculator.printStats()

@@ -1,3 +1,6 @@
+from __future__ import division
+from tools.sumolib.net import readNet
+
 def findShortestPathBewtweenTwoNodes(net, start, end):
     
     # Retrieve edges from the net object
@@ -77,14 +80,35 @@ def findShortestPathToAllNodes(net, start):
 
     return visited, via
 
-class shortestPaths:
+class addEdgeWeights2Net:
+
+    """ Standalone class for reading netfile in a sumolib net object and adding edge weights """
+
+    def __init__(self, net):
+        self._net = net
+        self._cost_attribute = 'traveltime'
+        self.load_weights()
+
+    def load_weights(self):
+        # reset weights before loading
+        for e in self._net.getEdges():
+            e.cost = e.getLength() / e.getSpeed()
+            
+    def getNet(self):
+        return self._net
+
+    def getCostAttribute(self):
+        return self._cost_attribute
+
+class shortestPathsClass:
     
     """ Contains all the shortest paths between edges in the network """
     
     def __init__(self, net):
-        self._net = net
+        netWithEdgeWeights = addEdgeWeights2Net(net)
+        net = netWithEdgeWeights.getNet()
         self._paths = {}
-        self.findPaths(self._net)
+        self.findPaths(net)
     
     def findPaths(self, net):
         """ Generate all the shortest paths and store in the _paths dict """
@@ -105,7 +129,6 @@ class shortestPaths:
                 while current_edge != None:
                     self._paths[start][end][0].append(current_edge)
                     current_edge = dijkstra_via[current_edge]
-                self._paths[start][end][0].append(start)
                 self._paths[start][end][0].reverse()
             
             edges_evaluated += 1
@@ -119,3 +142,16 @@ class shortestPaths:
         """ return shortest path """
         return self._paths[start][end][0]
     
+    def getMaxPathCost(self):
+        maxCost = 0
+        for start in self._paths:
+            for end in self._paths[start]:
+                if self._paths[start][end][1] > maxCost : maxCost = self._paths[start][end][1]
+        return maxCost
+    
+    def getMaxElementCost(self):
+        maxCost = 0
+        for edge in self._net.getEdges():
+            if edge.cost > maxCost : maxCost = edge.cost
+        return maxCost
+            
