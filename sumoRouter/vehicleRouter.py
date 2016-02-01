@@ -151,11 +151,11 @@ class createRouterObject():
     def route(self, router_mode, starting_edge, end_edge, alpha):
         
         if router_mode == "CoverageBasedRouting":
-            return self.coverageBasedRoutingTime(starting_edge, end_junction, alpha)
+            return self.coverageBasedRoutingTime(starting_edge, end_edge, alpha)
         
         else:
             print("No recognised routing method given. Defaulting to routing using Dijkstra's algorithm.")
-            return self.dijkstra(starting_edge,  end_junction)
+            return self.dijkstra(starting_edge,  end_edge)
         
 def debugger():
     from sumoFileGen import pickleFunc

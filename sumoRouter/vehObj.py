@@ -32,9 +32,12 @@ class vehObj():
         
 class vehObjContainer():
     
-    def __init__(self, sumolibNet, loop_ids, CBR_alpha):        
+    def __init__(self, sumolibNet, shortestPathContainer, loop_ids, CBR_alpha):        
         # Simulation container
         self.container = {} # The container of vehicle objects (only contains vehicles currently in the simulation)
+        
+        # The router object used for vehicle routing during the simulation
+        self.routerObj = vehicleRouter.createRouterObject(shortestPathContainer, sumolibNet)
         
         # Objects/constants for vehicle routing
         #self.routerObj = vehicleRouter.createRouterObject(sumolibNet) # The vehicle routing object which decides on the best route for a vehicle to take
