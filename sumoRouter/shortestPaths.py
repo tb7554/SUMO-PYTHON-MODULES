@@ -107,8 +107,12 @@ class shortestPathsClass:
     def __init__(self, net):
         netWithEdgeWeights = addEdgeWeights2Net(net)
         net = netWithEdgeWeights.getNet()
+
         self._paths = {}
         self.findPaths(net)
+        
+        self._maxPathCost = self.findMaxPathCost()
+        self._maxElementCost = self.findMaxElementCost(net)
     
     def findPaths(self, net):
         """ Generate all the shortest paths and store in the _paths dict """
@@ -142,16 +146,22 @@ class shortestPathsClass:
         """ return shortest path """
         return self._paths[start][end][0]
     
-    def getMaxPathCost(self):
+    def findMaxPathCost(self):
         maxCost = 0
         for start in self._paths:
             for end in self._paths[start]:
                 if self._paths[start][end][1] > maxCost : maxCost = self._paths[start][end][1]
         return maxCost
     
-    def getMaxElementCost(self):
+    def findMaxElementCost(self, net):
         maxCost = 0
-        for edge in self._net.getEdges():
+        for edge in net.getEdges():
             if edge.cost > maxCost : maxCost = edge.cost
         return maxCost
+    
+    def getMaxPathCost(self):
+        return self._maxPathCost
+    
+    def getMaxElementCost(self):
+        return self._maxElementCost
             

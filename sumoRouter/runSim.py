@@ -34,14 +34,13 @@ def covBasedRoutingMain(netID, stepLength, carGenRate, penetrationRate, run, alp
     # Output filepath
     tripInfoOutput_filepath = ("%s/SUMO_Output_Files/tripFiles/tripInfo-%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f-%d.xml" % (directory_path, netID, carGenRate, penetrationRate, alpha, run))
     vehRoutesOutput_filepath = ("%s/SUMO_Output_Files/vehRoutes/vehRoutes-%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f-%d.rou.xml" % (directory_path, netID, carGenRate, penetrationRate, alpha, run))
-    summaryOutput_filepath = ("%s/SUMO_Output_Files/summary/summary-%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f-%d.xml" % (directory_path, netID, carGenRate, penetrationRate, alpha, run))
      
     #Load the edgeContainer and juncContainer objects, and the loop IDs
     shortestPaths = pickleFunc.load_obj(shortestPaths_filepath)
     loop_ids = pickleFunc.load_obj(loopIDs_filepath)
     
     # Create a container for vehicle objects
-    vehContainer = vehObj.vehObjContainer(edgeContainer, juncContainer, loop_ids, alpha)
+    vehContainer = vehObj.vehObjContainer(sumolibNet, loop_ids, alpha)
     
     # Find a free port for Traci
     traciPORT = checkPorts.getOpenPort()
@@ -111,3 +110,15 @@ def duaRouterIterativeMain(netID, stepLength, carGenRate, run):
                     
     duaIterateProcess = subprocess.Popen(duaCommand, shell=True, stdout=sys.stdout)
     duaIterateProcess.wait()
+    
+if __name__ == "__main__":
+    
+    netID = "Grid-10x10"
+    guiOn = True
+    stepLength = 0.1
+    carGenRate = 3
+    penetrationRate = 1
+    run = 0
+    alpha = 0.9
+    
+    covBasedRoutingMain(netID, stepLength, carGenRate, penetrationRate, run, alpha, guiOn = False)

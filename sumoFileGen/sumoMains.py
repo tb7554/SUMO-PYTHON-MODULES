@@ -23,6 +23,7 @@ if __name__=="__main__":
     directory_name = "Grid-10x10"
 
 from sumoFileGen import pickleFunc
+from tools.sumolib import net
 
 if not os.path.isdir("%s/inductanceLoopsDump" % (directory_path)):
     os.mkdir("%s/inductanceLoopsDump" % (directory_path))
@@ -228,18 +229,18 @@ def vTypeFile(tripsFolder):
     
     VTYPESFILE.close()
     
-def addInductionLoops2AdditionalFile(netID, additionalFile_filepath, loopOutput_filepath):
-    edgeContainer_filepath = ('%s/netObjects/%s_edgeContainer' % (os.environ['DIRECTORY_PATH'], netID))
-    edgeContainer = pickleFunc.load_obj(edgeContainer_filepath)
+def addInductionLoops2AdditionalFile(netFile_filepath, additionalFile_filepath, loopOutput_filepath):
+    sumolibnet = net.readNet(netFile_filepath)
+    edges = sumolibnet.getEdges()
     
     loop_ids = []
     freq = 1800
     ADDFILE = open(additionalFile_filepath, 'a')
     
-    for edge in edgeContainer.container:
-        for lane in edgeContainer.container[edge].lanesContainer:
+    for edge in sumolibnet.getEdges():
+        for lane in edge.getLanes():
             
-            if edgeContainer.container[edge].speed > edgeContainer.container[edge].length:
+            if edge.getSpeed() > edge.getLength():
                 print("No inductance loop placed on lane %s, as it is too short" % (lane))
             elif edgeContainer.container[edge].speed < edgeContainer.container[edge].length :
                 pos = edgeContainer.container[edge].length - 1*edgeContainer.container[edge].speed

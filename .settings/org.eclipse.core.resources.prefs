@@ -9,3 +9,4 @@ encoding//tools/purgatory/kShortest.py=utf-8
 encoding//tools/traci/edge.py=utf-8
 encoding//traci/__init__.py=utf-8
 encoding//traci/lane.py=utf-8
+encoding//traci/vehicle.py=utf-8

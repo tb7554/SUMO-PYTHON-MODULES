@@ -55,9 +55,9 @@ class createRouterObject():
     def clearRouteChoicesContainer(self):
         self.routeOptionsContainer = {}
     
-    def getCoverageControlConstants(self, sumolibnet):
+    def getCoverageControlConstants(self):
         
-        max_traveltime = self.shortestPaths.getMaxCost()
+        max_traveltime = self.shortestPaths.getMaxPathCost()
         
         max_element_time = self.shortestPaths.getMaxElementCost()         
                 
@@ -77,38 +77,26 @@ class createRouterObject():
                     selfLoop = True         
         return selfLoop
     
-    def coverageBasedRoutingTime(self, start_edge, end_junction, alpha):
+    def coverageBasedRoutingTime(self, starting_edge, ending_edge, alpha):
         
         sigma = 10
+        best_route = [starting_edge]
         
         # For every edge leading from the current edge:
-        for road_choice in self.juncContainer.container[start_junction].children:
+        for road_choice in self.net.getEdge(starting_edge).getOutgoing():
             
-            # Create an array to store the actual route being suggested
-            route = []
-            route.append(start_junction)
-
-            # Evaluate the time to travel along the edge you are looking at, and the estimated time the car will have to travel for if it takes it
-            evaluate_time_from_this_junction = self.edgeContainer.container[self.juncContainer.container[start_junction].children[road_choice]].to
-            
-            route_traveltime = netObjFuncs.lookupTable(self.timeTable, evaluate_time_from_this_junction, end_junction)
+            road_choice_ID = road_choice.getID()
+            route_traveltime = self.shortestPaths.getPathCost(road_choice_ID, ending_edge)
             
             if route_traveltime != float("inf"):
-                rest_of_route = netObjFuncs.lookupTable(self.routeTable, evaluate_time_from_this_junction, end_junction)
-                #print(rest_of_route)
-                # Append the other junctions to the route
-                for element in rest_of_route:
-                    route.append(element)
-                #print(route)
-                road_traveltime = self.edgeContainer.container[self.juncContainer.container[start_junction].children[road_choice]].minTravelTime
+                route = self.shortestPaths.getPath(road_choice_ID, ending_edge)
                 
                 # Calculate the distance cost using dijkstra
-                time_based_cost = (route_traveltime + road_traveltime)/(self.ccValues["max_traveltime"] + self.ccValues["max_element_time"] )
+                time_based_cost = (route_traveltime)/(self.ccValues["max_traveltime"] + self.ccValues["max_element_time"] )
                 
                 # Calculate the occupancy cost using the defined relationship
-                
-                occupancy_of_edge = self.edgeContainer.container[self.juncContainer.container[start_junction].children[road_choice]].occupancy
-                critical_occupancy = self.edgeContainer.container[self.juncContainer.container[start_junction].children[road_choice]].crit_occupancy
+                occupancy_of_edge = self.edgeOccs.getEdgeOccupancyByID(road_choice_ID)
+                critical_occupancy = self.edgeOccs.getEdgeCriticalOccupancyByID(road_choice_ID)
                 
                 if occupancy_of_edge < critical_occupancy:
                     occupancy_based_cost = occupancy_of_edge
@@ -130,32 +118,24 @@ class createRouterObject():
             # Add this option to the route choices container
             #print(route, total_cost)
             
-            self.routeOptionsContainer.update({road_choice : routeOption(route, total_cost)})
-            
-                        
+            self.routeOptionsContainer.update({road_choice_ID : routeOption(route, total_cost)})
+                                  
         # Pick the route with the lowest total cost
-        best_route = self.returnLowestCostingRoute()
-        
-        #print(best_route)
-        
-        # Convert from junctions to edges
-        route_via_edges = self.junctions2Edges(start_edge, best_route)
-        
-        #print(start_edge, route_via_edges)
+        best_route.extend(self.returnLowestCostingRoute())      
         
         # clear the routeOptionsContainer
         self.clearRouteChoicesContainer()
 
-        return route_via_edges
+        return best_route
     
-    def route(self, router_mode, starting_edge, end_edge, alpha):
+    def route(self, router_mode, starting_edge, ending_edge, alpha):
         
         if router_mode == "CoverageBasedRouting":
-            return self.coverageBasedRoutingTime(starting_edge, end_edge, alpha)
+            return self.coverageBasedRoutingTime(starting_edge, ending_edge, alpha)
         
         else:
             print("No recognised routing method given. Defaulting to routing using Dijkstra's algorithm.")
-            return self.dijkstra(starting_edge,  end_edge)
+            return self.dijkstra(starting_edge,  ending_edge)
         
 def debugger():
     from sumoFileGen import pickleFunc

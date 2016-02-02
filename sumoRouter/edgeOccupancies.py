@@ -13,11 +13,14 @@ class edgeOccupanciesClass:
         self._net = sumolibnet
         self._edges = sumolibnet.getEdges()
         self._edgeOccupancies = {}
+        self._edgeCriticalOccupancies = {}
         self._edgeLengths = {}
         self._shortEdges = []
         self._edgesDownstream = {}
         
         self.storeEdgeLengthsAndDownstreamEdges(10)
+        for edge in self._edges:
+            self.storeEdgeCriticalOccupancy(edge.getID(),0.2)
         
     def calcEdgeOccupancy(self, edge):
         """ gets average of all lane occupancies for an edge """
@@ -39,6 +42,9 @@ class edgeOccupanciesClass:
     def getEdgeOccupancyByID(self, edgeID):
         return self._edgeOccupancies[edgeID]
     
+    def getEdgeCriticalOccupancyByID(self, edgeID):
+        return self._edgeCriticalOccupancies[edgeID]
+    
     def storeEdgeLengthsAndDownstreamEdges(self, minDistance=10, stopOnTLS=True):
         for edge in self._edges:
             self._edgeLengths.update({edge.getID():edge._length})
@@ -50,6 +56,9 @@ class edgeOccupanciesClass:
             downstream = self._net.getDownstreamEdges(edge, minDistance, stopOnTLS)
             for e in downstream:
                 self._edgesDownstream[edge.getID()].append(e[0].getID())
+                
+    def storeEdgeCriticalOccupancy(self, edgeID, criticalOccupancy):
+        self._edgeCriticalOccupancies.update({edgeID : criticalOccupancy})
             
     def getEdgeLengthByID(self, edgeID):
         return self._edgeLengths[edgeID]

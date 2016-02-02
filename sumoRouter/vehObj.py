@@ -46,7 +46,6 @@ class vehObjContainer():
     
     # add a vehicle to the container
     def addVeh(self, vehID, vehType, route):
-        vehRoute = route
         end_edge = route.pop()
         destination = end_edge
 
@@ -103,6 +102,8 @@ class vehObjContainer():
         
         for edge in vehicles_approaching_junctions:
             for veh in vehicles_approaching_junctions[edge]:
-                if not(self.container[veh].dest == self.edgeContainer.container[edge].to) and self.container[veh].router_mode != None:
+                if not(self.container[veh].dest == edge) and not(self.container[veh].router_mode == None):
                     vehRoute = self.findVehicleRoute(veh, edge)
+                    print(vehRoute)
+                    print(str(veh))
                     traci.vehicle.setRoute(veh, vehRoute)
