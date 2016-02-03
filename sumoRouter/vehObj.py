@@ -104,6 +104,4 @@ class vehObjContainer():
             for veh in vehicles_approaching_junctions[edge]:
                 if not(self.container[veh].dest == edge) and not(self.container[veh].router_mode == None):
                     vehRoute = self.findVehicleRoute(veh, edge)
-                    print(vehRoute)
-                    print(str(veh))
                     traci.vehicle.setRoute(veh, vehRoute)

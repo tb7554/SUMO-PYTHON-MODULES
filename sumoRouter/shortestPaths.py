@@ -104,7 +104,8 @@ class shortestPathsClass:
     
     """ Contains all the shortest paths between edges in the network """
     
-    def __init__(self, net):
+    def __init__(self, net_filepath):
+        net = readNet(net_filepath)
         netWithEdgeWeights = addEdgeWeights2Net(net)
         net = netWithEdgeWeights.getNet()
 
