@@ -21,7 +21,7 @@ def covBasedRoutingMain(netID, stepLength, carGenRate, penetrationRate, run, alp
     # Input filepaths
     netFile_filepath = ("%s/netXMLFiles/%s.net.xml" % (os.environ['DIRECTORY_PATH'], netID))
     routeFile_filepath = ("%s/SUMO_Input_Files/routeFiles/%s-CGR-%.2f-PEN-%.2f-%d.rou.xml" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, penetrationRate, run))
-    addFile_filepath = ("%s/SUMO_Input_Files/additionalFiles/%s-CGR-%.2f-PEN-%.2f-%d.add.xml" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, penetrationRate, run))
+    addFile_filepath = ("%s/SUMO_Input_Files/additionalFiles/%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f-%d.add.xml" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, penetrationRate, alpha, run))
     
     # Output filepath
     tripInfoOutput_filepath = ("%s/SUMO_Output_Files/tripFiles/tripInfo-%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f-%d.xml" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, penetrationRate, alpha, run))
@@ -44,12 +44,14 @@ def covBasedRoutingMain(netID, stepLength, carGenRate, penetrationRate, run, alp
     
     if guiOn: sumoBinary += "-gui" # Append the gui command if requested 
     
-    sumoCommand = [sumoBinary, "-n", netFile_filepath, "-a", addFile_filepath, "-r", routeFile_filepath, "--step-length", str(stepLength), "--tripinfo-output", tripInfoOutput_filepath, \
-                   "--vehroute-output", vehRoutesOutput_filepath, "--vehroute-output.last-route", "--vehroute-output.sorted", "--remote-port", str(traciPORT)]
+    sumoCommand = ("%s -n %s -a %s -r %s --step-length %.2f --tripinfo-output %s --vehroute-output %s --vehroute-output.last-route --vehroute-output.sorted --remote-port %d" % \
+                   (sumoBinary, netFile_filepath, addFile_filepath, routeFile_filepath, stepLength, tripInfoOutput_filepath, vehRoutesOutput_filepath, traciPORT))
     sumoProcess = subprocess.Popen(sumoCommand, shell=True, stdout=sys.stdout, stderr=sys.stderr)
+    print("Launched process: %s" % sumoCommand)
     
     # open up the traci port
     traci.init(traciPORT)
+    print("Opened up traci on port %d" % (traciPORT))
     
     # initialise the step
     step = 0
