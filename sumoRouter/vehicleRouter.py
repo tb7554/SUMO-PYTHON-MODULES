@@ -114,9 +114,6 @@ class createRouterObject():
                     total_cost = 999
             else:
                 total_cost = 999
-                #print("loop")
-            # Add this option to the route choices container
-            #print(route, total_cost)
             
             self.routeOptionsContainer.update({road_choice_ID : routeOption(route, total_cost)})
                                   

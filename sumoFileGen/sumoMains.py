@@ -160,10 +160,10 @@ def addPenRates2RouteFiles(simulationDetails_filepath, routesFolder):
                     basicRoutes_filepath = ("%s/%s-CGR-%.2f-PEN-0.00-%d.rou.xml" % (routesFolder, networkID, carGenRate, ii))
                     routesWithPenRate_filepath = ("%s/%s-CGR-%.2f-PEN-%.2f-%d.rou.xml" % (routesFolder, networkID, carGenRate, PenetrationRate, ii))
                     
-                if routesWithPenRate_filepath not in newfiles:
-                    basefiles.append(basicRoutes_filepath)
-                    newfiles.append(routesWithPenRate_filepath)
-                    penRate.append(PenetrationRate)
+                    if routesWithPenRate_filepath not in newfiles:
+                        basefiles.append(basicRoutes_filepath)
+                        newfiles.append(routesWithPenRate_filepath)
+                        penRate.append(PenetrationRate)
 
     for ii in range(0,len(newfiles)):
                 

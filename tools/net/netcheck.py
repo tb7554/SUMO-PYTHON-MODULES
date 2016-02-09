@@ -25,7 +25,7 @@ import os
 import sys
 from optparse import OptionParser
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import sumolib.net
+from tools import sumolib.net
 
 
 def parse_args():

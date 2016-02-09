@@ -5,6 +5,7 @@ encoding//sumoFileGen/sumoResults.py=utf-8
 encoding//tools/assign/duaIterate.py=utf-8
 encoding//tools/output/accelerations.py=utf-8
 encoding//tools/output/analyze_teleports.py=utf-8
+encoding//tools/output/vehLanes.py=utf-8
 encoding//tools/purgatory/kShortest.py=utf-8
 encoding//tools/traci/edge.py=utf-8
 encoding//traci/__init__.py=utf-8

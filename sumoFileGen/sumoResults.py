@@ -1683,6 +1683,78 @@ def plotMeanDelayVsCarGenRate(netID, carGenRateRange, axis_title_font_size, axis
     plt.savefig(save_to, bbox_inches='tight')
     plt.show()
 
+def plotPenVsCarGenRateMeanDelay(netID, carGenRange, alpha, penRange, axis_title_font_size_desired, axis_labels_font_size_desired, figure_scale_factor, figNum=1, ignoreErrors=False):
+    
+    axis_title_font_size = axis_title_font_size_desired * (1/figure_scale_factor)
+    axis_labels_font_size = axis_labels_font_size_desired * (1/figure_scale_factor)
+    
+    heightWidthRatio = (max(carGenRange)-min(carGenRange))/(max(penRange)-min(penRange))
+    
+    pvcgrd_fig = plt.figure(num=figNum, dpi=300, frameon=False)
+    mean_delays_matrix = []
+    
+    iterations = len(carGenRange)*len(penRange)
+    index = 0
+    prevMeanDelays = 0
+    
+    for carGen in carGenRange:
+        
+        mean_delays = []
+        
+        for pen in penRange:
+            
+            results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f" % (os.environ['DIRECTORY_PATH'], netID, carGen, pen, alpha))
+            pen=float("{0:.2f}".format(pen))
+            
+            if ignoreErrors:
+                try:
+                    results = pickleFunc.load_obj(results_data_path)
+                    meanDelay = results["CBR"][pen][alpha]['delay'][0]
+                    mean_delays.append(meanDelay)
+                except IOError:
+                    print("Cannot find data for alpha=%f and carGen=%f" % (alpha, carGen))
+                    mean_delays = prevMeanDelays
+                    break
+            else:
+                results = pickleFunc.load_obj(results_data_path)
+                meanDelay = results["CBR"][pen][alpha]['delay'][0]
+                mean_delays.append(meanDelay)
+                 
+            index+= 1
+            print("%.2f %%" % ((index/iterations)*100))
+        
+        prevMeanDelays = mean_delays
+        mean_delays_matrix.append(mean_delays)
+    
+    [x,y] = np.meshgrid(penRange, carGenRange)
+    
+    z = np.matrix(mean_delays_matrix)
+    z_min = z.min()
+    z_max = z_min+3600
+    
+    if z_max > 3600:
+        z_min = int(math.floor(z_min/1800)*1800)
+        z_max = int(math.ceil(z_max/1800)*1800)
+        cax = plt.imshow(z, vmin=z_min, vmax=z_max, extent=[x.min(), x.max(), y.min(), y.max()], interpolation='bicubic', origin='lower', cmap=retrieveColourScheme('viridis'))
+        cbar = plt.colorbar(cax, ticks=[z_min, (z_min+z_max)/2 , z_max])
+        cbar.ax.set_yticklabels([str(z_min/3600), str((z_min+z_max)/7200), str(z_max/3600)])
+    else:
+        z_min = int(math.floor(z_min/300)*300)
+        z_max = int(math.ceil(z_max/300)*300)
+        cax = plt.imshow(z, vmin=z_min, vmax=z_max, extent=[x.min(), x.max(), y.min(), y.max()], interpolation='bicubic', origin='lower', cmap=retrieveColourScheme('viridis'))
+        cbar = plt.colorbar(cax, ticks=[z_min, (z_min+z_max)/2 , z_max])
+        cbar.ax.set_yticklabels([str(z_min/60), str((z_min+z_max)/120), '> ' + str(z_max/60)])
+    
+    formatGraph(axis_labels_font_size)
+    
+    plt.xticks([x*0.01 for x in range(0, int(max(penRange)*100)+1,20)], [str(x) for x in range(0, int(max(penRange)*100)+1, 20)] )
+    
+    plt.xlabel('Penetration Rate (%)', fontsize=axis_title_font_size)
+    plt.ylabel(r'Car Generation Rate ($\lambda$)', fontsize=axis_title_font_size)
+    save_to = ('%s/plots/%s_pvcgrd.pdf' % (os.environ['DIRECTORY_PATH'], netID))
+    plt.savefig(save_to, bbox_inches='tight')    
+    plt.show()
+
 def plotMeanDelayVsPenetrationRate(netID, penRateRange, carGenRates, routingMethods, axis_title_font_size, axis_labels_font_size, alpha=None, RUI=None):
     
     plt.figure("meanDelayVsPenRate", figsize=(3.4,1.7))
@@ -1817,6 +1889,31 @@ def plotMeanDelayVsCarGenRate_CBRonly(netID, carGenRateRange, alphasRange, penRa
     save_to = ('%s/plots/%s_amd.pdf' % (os.environ['DIRECTORY_PATH'], netID))
     plt.savefig(save_to, bbox_inches='tight')
     plt.show()
+
+def findOptimalAlpha(netID, carGenRateRange, alphasRange, penRate=1):
+    
+    plt.figure("sum_alpha_delays", figsize=(3.4,1.7))
+    
+    alpha_sum_delays = []
+    
+    for alpha in alphasRange:
+        
+        sum_delays = 0
+        
+        for rate in carGenRateRange:
+            
+            alpha=float("{0:.2f}".format(alpha))
+            results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f" % (os.environ['DIRECTORY_PATH'], netID, rate, penRate, alpha))
+            results = pickleFunc.load_obj(results_data_path)
+            meanDelay = results["CBR"][penRate][alpha]['delay'][0]
+            sum_delays += meanDelay
+            
+        alpha_sum_delays.append(sum_delays)
+
+    plt.plot(alphasRange, alpha_sum_delays)
+    
+    plt.show()
+
 
 def formatGraph(axis_labels_font_size, fontFamily='Times New Roman', fontWeight='normal' ):
     
@@ -1954,12 +2051,10 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                     stdDev_delay = []
                     mean_delayOverExpectedTravelTime = []
                     stdDev_delayOverExpectedTravelTime = []
-                    
-                    carsOverTime = []
     
                     for run in range(0,runs):
                         resultsIdentifier = ("%s-CGR-%.2f-CBR-PEN-%.2f-ALPHA-%.2f-%d" % (netID, carGenRate, penetrationRate, alpha, run))
-                        inputsIdentifer = ("%s-CGR-%.2f-PEN-%.2f-%d" % (netID, carGenRate, penetrationRate, run))
+                        inputsIdentifer = ("%s-CGR-%.2f-PEN-0.00-%d" % (netID, carGenRate, run))
                         
                         routeFile_filepath = ("%s/SUMO_Input_Files/routeFiles/%s.rou.alt.xml" % (directory_path, inputsIdentifer))
                         tripFile_filepath = ("%s/SUMO_Output_Files/tripFiles/tripInfo-%s.xml" % (directory_path, resultsIdentifier))
@@ -1973,8 +2068,6 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                                 print("%s is incomplete" % tripFile_filepath)
                         
                             if fileValidity:
-                                carsOverTime_run = carsInNetworkOverTime(tripFile_filepath)
-                                carsOverTime.append(carsOverTime_run)
                                 
                                 [mean_travelTime_run, stdDev_travelTime_run] = extractTravelTimeStats(tripFile_filepath)
                                 mean_travelTimes.append(mean_travelTime_run)
@@ -1994,8 +2087,7 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                         
                     if runs_eval > 0:                    
                         print("%d runs evaluated, calculating statistics..." % runs_eval)
-                        print("Cars in network over time...")
-                        carsInNetworkOverTimeStats = carsInNetworkOverTimeMultiRun(carsOverTime)
+
                         print("Travel time statistics...")
                         travelTimeStats = [np.mean(mean_travelTimes), np.mean(stdDev_travelTimes),np.std(mean_travelTimes), np.std(stdDev_travelTimes)]
                         print("Delay statistics...")
@@ -2003,7 +2095,7 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                         print("Delay over expected travel time statistics...")
                         delayOverExpectedTravelTimeStats = [np.mean(mean_delayOverExpectedTravelTime), np.mean(stdDev_delayOverExpectedTravelTime), np.std(mean_delayOverExpectedTravelTime), np.std(stdDev_delayOverExpectedTravelTime)]
                         print("Adding to dictionary...")
-                        results[routingMethod][penetrationRate][alpha].update({'carsOverTime' : carsInNetworkOverTimeStats,'travelTime' :  travelTimeStats, 'delay' : delayStats,
+                        results[routingMethod][penetrationRate][alpha].update({'travelTime' :  travelTimeStats, 'delay' : delayStats,
                                                                                'delayOverExpectedTravelTime' : delayOverExpectedTravelTimeStats})
                         
                         save = True
@@ -2046,14 +2138,12 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                     for run in range(0,runs):
                     
                         resultsIdentifier = ("%s-CGR-%.2f-TTRR-PEN-%.2f-RUI-%d-%d" % (netID, carGenRate, penetrationRate, RUI, run))
-                        inputsIdentifer = ("%s-CGR-%.2f-PEN-%.2f-%d" % (netID, carGenRate, penetrationRate, run))
+                        inputsIdentifer = ("%s-CGR-%.2f-PEN-0.00-%d" % (netID, carGenRate, run))
                         
                         routeFile_filepath = ("%s/SUMO_Input_Files/routeFiles/%s.rou.alt.xml" % (directory_path, inputsIdentifer))
                         tripFile_filepath = ("%s/SUMO_Output_Files/tripFiles/tripInfo-%s.xml" % (directory_path, resultsIdentifier))
                         
                         if os.path.isfile(tripFile_filepath):
-                            carsOverTime_run = carsInNetworkOverTime(tripFile_filepath)
-                            carsOverTime.append(carsOverTime_run)
                             
                             [mean_travelTime_run, stdDev_travelTime_run] = extractTravelTimeStats(tripFile_filepath)
                             mean_travelTimes.append(mean_travelTime_run)
@@ -2073,8 +2163,7 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                         
                     if runs_eval > 0:                    
                         print("%d runs evaluated, calculating statistics..." % runs_eval)
-                        print("Cars in network over time...")
-                        carsInNetworkOverTimeStats = carsInNetworkOverTimeMultiRun(carsOverTime)
+
                         print("Travel time statistics...")
                         travelTimeStats = [np.mean(mean_travelTimes), np.mean(stdDev_travelTimes),np.std(mean_travelTimes), np.std(stdDev_travelTimes)]
                         print("Delay statistics...")
@@ -2082,7 +2171,7 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                         print("Delay over expected travel time statistics...")
                         delayOverExpectedTravelTimeStats = [np.mean(mean_delayOverExpectedTravelTime), np.mean(stdDev_delayOverExpectedTravelTime), np.std(mean_delayOverExpectedTravelTime), np.std(stdDev_delayOverExpectedTravelTime)]
                         print("Adding to dictionary...")
-                        results[routingMethod][penetrationRate][RUI].update({'carsOverTime' : carsInNetworkOverTimeStats,'travelTime' :  travelTimeStats, 'delay' : delayStats,
+                        results[routingMethod][penetrationRate][RUI].update({'travelTime' :  travelTimeStats, 'delay' : delayStats,
                                                                                'delayOverExpectedTravelTime' : delayOverExpectedTravelTimeStats})                        
                         save=True
                         
@@ -2131,16 +2220,13 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                     for run in range(0,runs):
                     
                         resultsIdentifier = ("%s-CGR-%.2f-DUA-%d" % (netID, carGenRate, run))
-                        inputsIdentifer = ("%s-CGR-%.2f-PEN-%.2f-%d" % (netID, carGenRate, penetrationRate, run))
+                        inputsIdentifer = ("%s-CGR-%.2f-PEN-0.00-%d" % (netID, carGenRate, run))
                         
                         routeFile_filepath = ("%s/SUMO_Input_Files/routeFiles/%s.rou.alt.xml" % (directory_path, inputsIdentifer))
                         tripFile_filepath_049 = ("%s/SUMO_Output_Files/%s/tripinfo_049.xml" % (directory_path, resultsIdentifier))
                         tripFile_filepath_000 = ("%s/SUMO_Output_Files/%s/tripinfo_000.xml" % (directory_path, resultsIdentifier))
                         
                         if os.path.isfile(tripFile_filepath_049):
-                            carsOverTime_run_049 = carsInNetworkOverTime(tripFile_filepath_049)
-                            carsOverTime_049.append(carsOverTime_run_049)
-                            
                             [mean_travelTime_run_049, stdDev_travelTime_run_049] = extractTravelTimeStats(tripFile_filepath_049)
                             mean_travelTimes_049.append(mean_travelTime_run_049)
                             stdDev_travelTimes_049.append(stdDev_travelTime_run_049)
@@ -2174,9 +2260,7 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                     
                     if runs_eval > 0:                    
                         print("%d runs evaluated, calculating statistics..." % runs_eval)
-                        print("Cars in network over time...")
-                        carsInNetworkOverTimeStats_049 = carsInNetworkOverTimeMultiRun(carsOverTime_049)
-                        carsInNetworkOverTimeStats_000 = carsInNetworkOverTimeMultiRun(carsOverTime_000)
+                        
                         print("Travel time statistics...")
                         travelTimeStats_049 = [np.mean(mean_travelTimes_049), np.mean(stdDev_travelTimes_049),np.std(mean_travelTimes_049), np.std(stdDev_travelTimes_049)]
                         travelTimeStats_000 = [np.mean(mean_travelTimes_000), np.mean(stdDev_travelTimes_000),np.std(mean_travelTimes_000), np.std(stdDev_travelTimes_000)]
@@ -2189,9 +2273,9 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                         delayOverExpectedTravelTimeStats_000 = [np.mean(mean_delayOverExpectedTravelTime_000), np.mean(stdDev_delayOverExpectedTravelTime_000), np.std(mean_delayOverExpectedTravelTime_000),
                                                         np.std(stdDev_delayOverExpectedTravelTime_000)]
                         print("Adding to dictionary...")
-                        results_049[routingMethod].update({'carsOverTime' : carsInNetworkOverTimeStats_049,'travelTime' :  travelTimeStats_049, 'delay' : delayStats_049,
+                        results_049[routingMethod].update({'travelTime' :  travelTimeStats_049, 'delay' : delayStats_049,
                                                            'delayOverExpectedTravelTime' : delayOverExpectedTravelTimeStats_049})
-                        results_000[routingMethod].update({'carsOverTime' : carsInNetworkOverTimeStats_000,'travelTime' :  travelTimeStats_000, 'delay' : delayStats_000,
+                        results_000[routingMethod].update({'travelTime' :  travelTimeStats_000, 'delay' : delayStats_000,
                                                            'delayOverExpectedTravelTime' : delayOverExpectedTravelTimeStats_000})
                         
                         save=True
