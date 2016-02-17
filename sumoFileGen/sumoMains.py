@@ -106,28 +106,21 @@ def duaRouter(net_filepath, vtypes_filepath, simulationDetails_filepath, tripsFo
 
 def addVehTypes2RouteFile(routeFile_filepath):
     
-    parse_routeFile = ET.parse(routeFile_filepath) # Use the XML parser to read the net XML file
-    routes = parse_routeFile.getroot()
+    if not os.path.basename(routeFile_filepath).startswith('.'):
     
-    vType = ET.Element('vType', {"id":"HumanStandard", 'color':"blue", 'guiShape':"passenger", 'length':"4.00"})
-    sub = ET.SubElement(vType,'carFollowing-Krauss', {'accel':"2.50", 'decel':"4.50", 'sigma':"0.00", 'tau':"0.21"})
-    
-    vType.tail = "\n    "
-    vType.text = "\n        "
-    sub.tail = "\n    "
-    
-    routes.insert(0, vType)
-    
-    vType = ET.Element('vType', {"id":"HumanCoverageRouted", 'color':"magenta", 'guiShape':"passenger", 'length':"4.00"})
-    sub = ET.SubElement(vType,'carFollowing-Krauss', {'accel':"2.50", 'decel':"4.50", 'sigma':"0.00", 'tau':"0.21"})
-    
-    vType.tail = "\n    "
-    vType.text = "\n        "
-    sub.tail = "\n    "
-    
-    routes.insert(1, vType)
-    
-    parse_routeFile.write(routeFile_filepath, "utf-8")
+        parse_routeFile = ET.parse(routeFile_filepath) # Use the XML parser to read the net XML file
+        routes = parse_routeFile.getroot()
+        
+        vType = ET.Element('vType', {"id":"HumanCoverageRouted", 'color':"magenta", 'guiShape':"passenger", 'length':"4.00"})
+        sub = ET.SubElement(vType,'carFollowing-Krauss', {'accel':"2.50", 'decel':"4.50", 'sigma':"0.00", 'tau':"0.21"})
+        
+        vType.tail = "\n    "
+        vType.text = "\n        "
+        sub.tail = "\n    "
+        
+        routes.insert(1, vType)
+        
+        parse_routeFile.write(routeFile_filepath, "utf-8")
 
 def addVehTypes2AllRouteFiles(routesFolder):
     """Adds the vtype for coverage based routing humans to the all the route files in a folder"""
@@ -234,48 +227,17 @@ def genShortestPathsObject(netFile_filepath, shortestPathsObj_filepath):
     shortestPathsObj = shortestPaths.shortestPathsClass(netFile_filepath)
     pickleFunc.save_obj(shortestPathsObj, shortestPathsObj_filepath)
 
-def addVehTypesToTrips(simulationDetails_filepath, tripsFolder):
+def addVehTypesToTrips(tripsFolder_path, vType="HumanStandard"):
         
-    parse_simulationDetails = ET.parse(simulationDetails_filepath) # Use the XML parser to read the net XML file
-    simDetails = parse_simulationDetails.getroot()
-    
-    basefiles = []
-    newfiles = []
-    penRate = []
-    
-    for simulation in simDetails:
-        networkID = simulation.attrib["netID"]
-        carGenRate = float(simulation.attrib["carGenRate"])
-        runs = int(simulation.attrib["runs"])
-        routingMethod = simulation.attrib['routingMethod']
+    for trips_file in os.listdir(tripsFolder_path):
         
-        for routingType in simulation:
-            if routingMethod == "CBR" : 
-                PenetrationRate = float(routingType.attrib["PenetrationRate"])                
-            else:
-                PenetrationRate = 0
-            
-            for ii in range(0,runs):
-                
-                basicTrips_filepath = ("%s/%s-CGR-%.2f-%d.trip.xml" % (tripsFolder, networkID, carGenRate, ii))
-                tripsWithVehicles_filepath = ("%s/%s-CGR-%.2f-PEN-%.2f-%d.trip.xml" % (tripsFolder, networkID, carGenRate, PenetrationRate, ii))
-                
-                if tripsWithVehicles_filepath not in newfiles:
-                    basefiles.append(basicTrips_filepath)
-                    newfiles.append(tripsWithVehicles_filepath)
-                    penRate.append(PenetrationRate)
-
-    for ii in range(0,len(newfiles)):
-                
-        parse_basicTrips = ET.parse(basefiles[ii])
-        basicTrips = parse_basicTrips.getroot()
-                              
-        for trip in basicTrips:
-            if random.random() > penRate[ii]:
-                vType = "HumanStandard"
-            else:
-                vType = "HumanCoverageRouted"
-                  
-            trip.set("type", vType)
-                  
-        parse_basicTrips.write(newfiles[ii])
+        if not trips_file.startswith('.') or trips_file == "vtypes.add.xml":
+            filepath = ("%s/%s" % (tripsFolder_path, trips_file))   
+        
+            parse_basicTrips = ET.parse(filepath)
+            basicTrips = parse_basicTrips.getroot()
+                                  
+            for trip in basicTrips:           
+                trip.set("type", vType)
+                      
+            parse_basicTrips.write(filepath)

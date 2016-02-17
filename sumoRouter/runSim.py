@@ -99,3 +99,24 @@ def duaRouterIterativeMain(netID, stepLength, carGenRate, run):
     duaIterateProcess = subprocess.Popen(duaCommand, shell=True, stdout=sys.stdout)
     duaIterateProcess.wait()
     
+def shortestPathMain(netID, stepLength, carGenRate, run, guiOn = False):
+    
+    DUA_directory = ("%s/SUMO_Output_Files/Spiderweb-10x10-CGR-%.2f-DUA-%d" % (os.environ['DIRECTORY_PATH'], carGenRate, run))
+    
+    # Input filepaths
+    netFile_filepath = ("%s/netXMLFiles/%s.net.xml" % (os.environ['DIRECTORY_PATH'], netID))
+    routeFile_filepath = ("%s/SUMO_Input_Files/routeFiles/%s-CGR-%.2f-PEN-0.00-%d.rou.xml" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, run))
+    
+    # Output filepath
+    tripInfoOutput_filepath = ("%s/tripinfo_000.xml" % (DUA_directory))
+    vehRoutesOutput_filepath = ("%s/%s-CGR-%d_000.rou.xml" % (DUA_directory, netID, int(carGenRate)))
+     
+    sumoBinary = os.environ["SUMO_BINARY"]
+    
+    if guiOn: sumoBinary += "-gui" # Append the gui command if requested 
+    
+    sumoCommand = ("%s -n %s -r %s --step-length %.2f --tripinfo-output %s --vehroute-output %s --vehroute-output.last-route --vehroute-output.sorted" % \
+                   (sumoBinary, netFile_filepath, routeFile_filepath, stepLength, tripInfoOutput_filepath, vehRoutesOutput_filepath))
+    sumoProcess = subprocess.Popen(sumoCommand, shell=True, stdout=sys.stdout, stderr=sys.stderr)
+    sumoProcess.wait()
+    
