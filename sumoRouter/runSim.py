@@ -100,16 +100,14 @@ def duaRouterIterativeMain(netID, stepLength, carGenRate, run):
     duaIterateProcess.wait()
     
 def shortestPathMain(netID, stepLength, carGenRate, run, guiOn = False):
-    
-    DUA_directory = ("%s/SUMO_Output_Files/Spiderweb-10x10-CGR-%.2f-DUA-%d" % (os.environ['DIRECTORY_PATH'], carGenRate, run))
-    
+
     # Input filepaths
     netFile_filepath = ("%s/netXMLFiles/%s.net.xml" % (os.environ['DIRECTORY_PATH'], netID))
     routeFile_filepath = ("%s/SUMO_Input_Files/routeFiles/%s-CGR-%.2f-PEN-0.00-%d.rou.xml" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, run))
     
     # Output filepath
-    tripInfoOutput_filepath = ("%s/tripinfo_000.xml" % (DUA_directory))
-    vehRoutesOutput_filepath = ("%s/%s-CGR-%d_000.rou.xml" % (DUA_directory, netID, int(carGenRate)))
+    tripInfoOutput_filepath = ("%s/SUMO_Output_Files/tripFiles/tripInfo-%s-CGR-%.2f-SP-%d.xml" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, run))
+    vehRoutesOutput_filepath = ("%s/SUMO_Output_Files/vehRoutes/vehRoutes-%s-CGR-%.2f-SP-%d.rou.xml" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, run))
      
     sumoBinary = os.environ["SUMO_BINARY"]
     

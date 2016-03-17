@@ -1601,39 +1601,41 @@ def plotAlphaVsCarGenRateMeanDelay(netID, carGenRange, alphaRange, penRate, desi
                     if meanDelay <= delayThreshold and max_car_gen_rate_below_delay_threshold[alpha_index] < carGen: max_car_gen_rate_below_delay_threshold[alpha_index] = carGen
             except IOError:
                 print("Cannot find data for alpha=%f and carGen=%f" % (alpha, carGen))
-                mean_delays = prevMeanDelays
-                break
+                meanDelay = prevMeanDelay
+                mean_delays.append(meanDelay)
+
         
             index+= 1
             alpha_index += 1
         
         print("%.2f %%" % ((index/iterations)*100))
         
-        prevMeanDelays = mean_delays
+        prevMeanDelay = meanDelay
         mean_delays_matrix.append(mean_delays)
     
     [x,y] = np.meshgrid(alphaRange, carGenRange)
     
     z = np.matrix(mean_delays_matrix)
     z_min = 0
-    z_max = 1800
+    z_max = delayThreshold
     
-    z_min = int(math.floor(z_min/300)*300)
-    z_max = int(math.ceil(z_max/300)*300)
-    cax = plt.imshow(z, vmin=z_min, vmax=z_max, extent=[x.min(), x.max(), y.min(), y.max()], interpolation='bicubic', origin='lower', cmap=retrieveColourScheme('viridis'), hold=True)
-    cbar = plt.colorbar(cax, ticks=[z_min, delayThreshold , z_max])
-    cbar.ax.set_yticklabels([str(z_min/60),r"$\hat{\omega}$ =" + "{0:.1f}".format(delayThreshold/60), '>' + str(z_max/60)])
+#    z_min = int(math.floor(z_min/300)*300)
+#    z_max = int(math.ceil(z_max/300)*300)
+    cax = plt.imshow(z, vmin=z_min, vmax=z_max, extent=[x.min(), x.max(), y.min(), y.max()], origin='lower', interpolation='bicubic', cmap=retrieveColourScheme('viridis'), hold=True)
+    cbar = plt.colorbar(cax, ticks=[z_min, z_max])
+    cbar.ax.set_yticklabels([r"$\bar{\omega}(\alpha,\lambda) = 0.0$", r"$\bar{\omega}(\alpha,\lambda) \geq \hat{\omega}$" + "\n" + r"($\hat{\omega}$ = " + "{0:.1f}".format(delayThreshold/60) + " mins)"])
     
     if delayThreshold : 
         print(max_car_gen_rate_below_delay_threshold)
         plt.plot(alphaRange, max_car_gen_rate_below_delay_threshold,lw=2,ls='dashed',color='r')
+        #plt.text(max(alphaRange)+0.05,max_car_gen_rate_below_delay_threshold[-1], r"$\hat{\lambda}(\alpha)$")
     
     formatGraph(axis_labels_font_size)
     plt.axis([min(alphaRange), max(alphaRange), min(carGenRange),max(carGenRange)])
     
     #pp.title(r'$\alpha$' + ' Plotted Against\nCar Generation Rate\nand Associated Mean Delay', fontsize=10)
     plt.xlabel(r'$\alpha$', fontsize=axis_title_font_size)
-    plt.ylabel(r'Car Generation Rate ($\lambda$)', fontsize=axis_title_font_size)
+    plt.ylabel(r'$\lambda$' + ' (veh/s)', fontsize=axis_title_font_size)
     save_to = ('%s/plots/%s_avcgrd.pdf' % (os.environ['DIRECTORY_PATH'], netID))
     plt.savefig(save_to, bbox_inches='tight')
     #fig_num += 1
@@ -1672,10 +1674,12 @@ def plotMeanDelayVsCarGenRate(netID, carGenRateRange, desired_axis_title_font_si
     plt.figure("meanDelayVsCarGenRate", figsize=(3.4,1.7))
     colour_scheme = retrieveColourScheme('colourBlind')
 
-    plot_num = 0    
+    plot_num = 0
+    
+    lambda_hat = {}
     
     for method in routingMethods:
-        
+        lambda_hat.update({method:0})
         mean_delays = []
         mean_expected_travel_times = []
         
@@ -1685,46 +1689,59 @@ def plotMeanDelayVsCarGenRate(netID, carGenRateRange, desired_axis_title_font_si
                 results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s-PEN-%.2f-ALPHA-%.2f" % (os.environ['DIRECTORY_PATH'], netID, rate, method, penRate, alpha))
                 results = pickleFunc.load_obj(results_data_path)
                 meanDelay = results["CBR"][penRate][alpha]['delay'][0]
+                if meanDelay <= delayThreshold : lambda_hat[method] = rate
                 meanTravelTime = results["CBR"][penRate][alpha]['travelTime'][0]
             elif method == "TTRR":
                 results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s-PEN-%.2f-RUI-%d" % (os.environ['DIRECTORY_PATH'], netID, rate, method, penRate, RUI))
                 results = pickleFunc.load_obj(results_data_path)
                 meanDelay = results["TTRR"][penRate][RUI]['delay'][0]
+                if meanDelay <= delayThreshold : lambda_hat[method] = rate
                 meanTravelTime = results["TTRR"][penRate][RUI]['travelTime'][0]
-            else:
+            elif method == "DUA_000" or method == "DUA_049":
                 results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s" % (os.environ['DIRECTORY_PATH'], netID, rate, method))
                 results = pickleFunc.load_obj(results_data_path)
                 meanDelay = results["DUA"]['delay'][0]
+                if meanDelay <= delayThreshold : lambda_hat[method] = rate
                 meanTravelTime = results["DUA"]['travelTime'][0]
+            elif method == "SP":
+                results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s" % (os.environ['DIRECTORY_PATH'], netID, rate, method))
+                results = pickleFunc.load_obj(results_data_path)
+                meanDelay = results["SP"]['delay'][0]
+                if meanDelay <= delayThreshold : lambda_hat[method] = rate
+                meanTravelTime = results["SP"]['travelTime'][0]
+                
             
             mean_expected_travel_times.append(meanTravelTime - meanDelay)
             mean_delays.append(meanDelay)
             
-            if meanDelay > higherBound : higherBound = meanDelay
+            #if meanDelay > higherBound : higherBound = meanDelay
             
         plt.plot(carGenRateRange, mean_delays, lw=2.5, color=colour_scheme[plot_num][0], hold=True)
         plot_num += 1
     
+    print(lambda_hat)
+    
     if delayThreshold:
         plt.plot(carGenRateRange, [delayThreshold for ii in carGenRateRange], lw=1, ls='dashed', color='r')
+        plt.text(max(carGenRateRange)+0.1, delayThreshold, r'$\hat{\omega}$ = ' + "\n" + "{0:.1f}".format(delayThreshold/60) + "\n" + "mins")
     
     formatGraph(axis_labels_font_size)
     
     if higherBound > 14400:
         plt.yticks([x for x in range(0,int(higherBound)+1,7200)], [str(x/60) for x in range(0, int(higherBound)+1,7200)])
-        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
+        plt.ylabel(r"$\bar{\omega}(\lambda)$" + " (mins)", fontsize=axis_title_font_size)
     elif higherBound > 7200:
         plt.yticks([x for x in range(0,int(higherBound)+1,3600)], [str(x/60) for x in range(0, int(higherBound)+1,3600)])
-        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
+        plt.ylabel(r"$\bar{\omega}(\lambda)$" + " (mins)", fontsize=axis_title_font_size)
     elif higherBound > 1800:
         plt.yticks([x for x in range(0,int(higherBound)+1,1800)], [str(x/60) for x in range(0, int(higherBound)+1,1800)])
-        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
+        plt.ylabel(r"$\bar{\omega}(\lambda)$" + " (mins)", fontsize=axis_title_font_size)
     else:
         plt.yticks([x for x in range(0,int(higherBound)+1,600)], [str(x/60) for x in range(0, int(higherBound),600)])
-        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
+        plt.ylabel(r"$\bar{\omega}(\lambda)$" + " (mins)", fontsize=axis_title_font_size)
 
     plt.xticks([x for x in range(int(min(carGenRateRange)), int(max(carGenRateRange))+1)], [str(x) for x in range(int(min(carGenRateRange)), int(max(carGenRateRange))+1)] )
-    plt.xlabel(r'Car Generation Rate ($\lambda$)',fontsize=axis_title_font_size)
+    plt.xlabel(r'$\lambda$' + ' (veh/s)',fontsize=axis_title_font_size)
 
     plt.axis([min(carGenRateRange),max(carGenRateRange),-100,higherBound])
     
@@ -1804,13 +1821,12 @@ def plotPenVsCarGenRateMeanDelay(netID, carGenRange, alpha, penRange, axis_title
     plt.savefig(save_to, bbox_inches='tight')    
     plt.show()
 
-def plotMeanDelayVsPenetrationRate(netID, penRateRange, carGenRates, routingMethods, axis_title_font_size_desired, axis_labels_font_size_desired, figure_scale_factor, alpha=None, RUI=None):
+def plotMeanDelayVsPenetrationRate(netID, penRateRange, carGenRates, routingMethods, baseline, axis_title_font_size_desired, axis_labels_font_size_desired, figure_scale_factor, alpha=None, RUI=None, y_axis_limit=None):
     
     axis_title_font_size = axis_title_font_size_desired * (1/figure_scale_factor)
     axis_labels_font_size = axis_labels_font_size_desired * (1/figure_scale_factor)
     
     plt.figure("meanDelayVsPenRate", figsize=(3.4,1.7))
-    colour_scheme = retrieveColourScheme('colourBlind')
     
     higherBound = 0
     plot_num = 0
@@ -1822,6 +1838,7 @@ def plotMeanDelayVsPenetrationRate(netID, penRateRange, carGenRates, routingMeth
             mean_delays = []
             
             for penRate in penRateRange:
+                print(penRate)
                 penRate=float("{0:.2f}".format(penRate))
                 
                 if method == "CBR":
@@ -1836,31 +1853,28 @@ def plotMeanDelayVsPenetrationRate(netID, penRateRange, carGenRates, routingMeth
                     results_data_path = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-%s" % (os.environ['DIRECTORY_PATH'], netID, carGenRate, method))
                     results = pickleFunc.load_obj(results_data_path)
                     meanDelay = results["DUA"]['delay'][0]
-                    
+                
+                print(meanDelay)
                 mean_delays.append(meanDelay)
                 if meanDelay > higherBound : higherBound = meanDelay
-                
-            plt.plot(penRateRange, mean_delays, lw=2.5, color='k', hold=True)
+            
+            percentages = []
+            for result in mean_delays:
+                delay_as_percentage = result/baseline
+                percentage_reduction = 1 - delay_as_percentage
+                percentages.append(percentage_reduction)
+            
+            plt.plot(penRateRange, percentages, lw=2.5, color='b', hold=True)
             plot_num += 1
             
     formatGraph(axis_labels_font_size)
     
-    if higherBound > 14400:
-        plt.yticks([x for x in range(0,int(higherBound),7200)], [str(x/60) for x in range(0, int(higherBound),7200)])
-        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
-    elif higherBound > 7200:
-        plt.yticks([x for x in range(0,int(higherBound),3600)], [str(x/60) for x in range(0, int(higherBound),3600)])
-        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
-    elif higherBound > 1800:
-        plt.yticks([x for x in range(0,int(higherBound),1800)], [str(x/60) for x in range(0, int(higherBound),1800)])
-        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
-    else:
-        plt.yticks([x for x in range(0,int(higherBound),600)], [str(x/60) for x in range(0, int(higherBound),600)])
-        plt.ylabel("Mean Delay (Mins)", fontsize=axis_title_font_size)
-
+    plt.ylabel("% reduction in " + r"$\bar{\omega}(\lambda)$", fontsize=axis_title_font_size)
+    
+    plt.axis([0,1,0,1])
+    plt.yticks([x*0.01 for x in range(0, int(max(penRateRange)*100)+1,20)], [str(x) for x in range(0, int(max(penRateRange)*100)+1, 20)] )
     plt.xticks([x*0.01 for x in range(0, int(max(penRateRange)*100)+1,20)], [str(x) for x in range(0, int(max(penRateRange)*100)+1, 20)] )
-    plt.axis([0,1,-100,higherBound])
-    plt.xlabel('Penetration Rate (%)', fontsize=axis_title_font_size)
+    plt.xlabel('Market Penetration (%)', fontsize=axis_title_font_size)
     
     save_to = ('%s/plots/%s_pmd.pdf' % (os.environ['DIRECTORY_PATH'], netID))
     plt.savefig(save_to, bbox_inches='tight')
@@ -2116,6 +2130,7 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                 
         # Extract the simulatino parameters
         batchID = simulation.attrib["batchID"]
+        print("%s ->" % batchID)
         netID = simulation.attrib["netID"]
         routingMethod = simulation.attrib["routingMethod"]
         carGenRate = float(simulation.attrib["carGenRate"])
@@ -2332,9 +2347,6 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                             mean_delayOverExpectedTravelTime_049.append(mean_delayOverExpectedTravelTime_run_049)
                             stdDev_delayOverExpectedTravelTime_049.append(stdDev_delayOverExpectedTravelTime_run_049)
                             
-                            carsOverTime_run_000 = carsInNetworkOverTime(tripFile_filepath_000)
-                            carsOverTime_000.append(carsOverTime_run_000)
-                            
                             [mean_travelTime_run_000, stdDev_travelTime_run_000] = extractTravelTimeStats(tripFile_filepath_000)
                             mean_travelTimes_000.append(mean_travelTime_run_000)
                             stdDev_travelTimes_000.append(stdDev_travelTime_run_000)
@@ -2380,7 +2392,77 @@ def extractMeanDataFromMultipleRuns(overwritePrevious=False):
                     print("Saving results for %s and %s" % (results_filepath_049, results_filepath_000))
                     pickleFunc.save_obj(results_049, results_filepath_049)
                     pickleFunc.save_obj(results_000, results_filepath_000)
+
+        elif routingMethod == "SP":
+            
+            results = {}
+            results.update({"SP":{}})
+            
+            results_filepath = ("%s/evaluatedResultsFiles/%s-CGR-%.2f-SP" % (os.environ['DIRECTORY_PATH'], netID, carGenRate))
+            
+            if not(os.path.isfile(results_filepath + ".pkl")):
+            
+                save=False
+                
+                for batch in simulation:
+                    
+                    runs_eval = 0
+                    mean_travelTimes = []
+                    stdDev_travelTimes = []
+                    mean_delay = []
+                    stdDev_delay = []
+                    mean_delayOverExpectedTravelTime = []
+                    stdDev_delayOverExpectedTravelTime = []
     
+                    for run in range(0,runs):
+                    
+                        resultsIdentifier = ("%s-CGR-%.2f-SP-%d" % (netID, carGenRate, run))
+                        inputsIdentifer = ("%s-CGR-%.2f-PEN-0.00-%d" % (netID, carGenRate, run))
+                        
+                        routeFile_filepath = ("%s/SUMO_Input_Files/routeFiles/%s.rou.alt.xml" % (directory_path, inputsIdentifer))
+                        tripFile_filepath = ("%s/SUMO_Output_Files/tripFiles/tripInfo-%s.xml" % (directory_path, resultsIdentifier))
+                        
+                        if os.path.isfile(tripFile_filepath):
+                            
+                            [mean_travelTime_run, stdDev_travelTime_run] = extractTravelTimeStats(tripFile_filepath)
+                            mean_travelTimes.append(mean_travelTime_run)
+                            stdDev_travelTimes.append(stdDev_travelTime_run)
+                            
+                            [mean_delay_run, stdDev_delay_run] = calculateTripDelayStats(tripFile_filepath, routeFile_filepath)
+                            mean_delay.append(mean_delay_run)
+                            stdDev_delay.append(stdDev_delay_run)
+                            
+                            [mean_delayOverExpectedTravelTime_run, stdDev_delayOverExpectedTravelTime_run] = delayAsFractionOfExpectedTravelTime(tripFile_filepath, routeFile_filepath)
+                            mean_delayOverExpectedTravelTime.append(mean_delayOverExpectedTravelTime_run)
+                            stdDev_delayOverExpectedTravelTime.append(stdDev_delayOverExpectedTravelTime_run)
+                            
+                            runs_eval += 1
+                        else:
+                            print("%s not found" % resultsIdentifier)
+                    
+                    if runs_eval > 0:                    
+                        print("%d runs evaluated, calculating statistics..." % runs_eval)
+                        
+                        print("Travel time statistics...")
+                        travelTimeStats = [np.mean(mean_travelTimes), np.mean(stdDev_travelTimes),np.std(mean_travelTimes), np.std(stdDev_travelTimes)]
+                        print("Delay statistics...")
+                        delayStats = [np.mean(mean_delay), np.mean(stdDev_delay), np.std(mean_delay), np.std(stdDev_delay)]
+                        print("Delay over expected travel time statistics...")
+                        delayOverExpectedTravelTimeStats = [np.mean(mean_delayOverExpectedTravelTime), np.mean(stdDev_delayOverExpectedTravelTime), np.std(mean_delayOverExpectedTravelTime),
+                                                        np.std(stdDev_delayOverExpectedTravelTime)]
+                        print("Adding to dictionary...")
+                        results["SP"].update({'travelTime' :  travelTimeStats, 'delay' : delayStats,
+                                                           'delayOverExpectedTravelTime' : delayOverExpectedTravelTimeStats})
+                        
+                        save=True
+                        
+                    else:
+                        print("No runs to evaluate for %s" % (batchID))
+            
+                if save:
+                    print("Saving results for %s" % (results_filepath))
+                    pickleFunc.save_obj(results, results_filepath)
+
                 else:
                     print("Results empty, not saving")
 

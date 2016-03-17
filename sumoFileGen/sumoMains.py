@@ -69,6 +69,7 @@ def randomTrips(net_filepath, simulationDetails_filepath, tripsFolder):
             trips_filepath = ("%s/%s-CGR-%.2f-PEN-0.00-%d.trip.xml" % (tripsFolder, networkID, carGenRate, ii))
             
             if not(os.path.isfile(trips_filepath)):
+                print("Generating trips _> %s" % trips_filepath)
                 randomTripsCommand = ("%s -n %s -o %s -b %s -e %s -p %s " % (os.environ['RANDOMTRIPS_PYTHON'], net_filepath, trips_filepath, begin, end, period))
                 
                 if minDistance:
@@ -233,7 +234,8 @@ def addVehTypesToTrips(tripsFolder_path, vType="HumanStandard"):
         
         if not trips_file.startswith('.') or trips_file == "vtypes.add.xml":
             filepath = ("%s/%s" % (tripsFolder_path, trips_file))   
-        
+            print("Adding vType %s to file %s" % (vType, filepath))
+            
             parse_basicTrips = ET.parse(filepath)
             basicTrips = parse_basicTrips.getroot()
                                   
