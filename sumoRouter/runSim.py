@@ -264,7 +264,7 @@ def uncontrolled_intersections_main(batch_id, net_id, begin_step, end_step, step
     sumoProcess = subprocess.Popen(sumoCommand, shell=True, stdout=sys.stdout, stderr=sys.stderr)
     sumoProcess.wait()
 
-def controlled_intersections_main_with_sumocfg_file(batch_id, run, net_id, end_step, step_length, queue_controller, green_time_controller, target_frac, guiOn=False, **kwargs):
+def controlled_intersections_main_with_sumocfg_file(batch_id, run, net_id, end_step, step_length, queue_controller, green_time_controller, target_frac, guiOn=False, exclude=[], **kwargs):
 
     if queue_controller == "MaxBoundedQueue":
         queue_control = ctrl.CongestionDemandOptimisingQueueController()
@@ -309,7 +309,7 @@ def controlled_intersections_main_with_sumocfg_file(batch_id, run, net_id, end_s
 
     intersection_controller_container = IntersectionControllerContainer()
     intersection_controller_container.add_intersection_controllers_from_net_file(net_file_filepath, target_frac, timer,
-                                                                                 queue_control, step_length)
+                                                                                 queue_control, step_length, exclude=exclude)
 
     # Open up traci on a free port
     traci.init(traci_port)
