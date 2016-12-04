@@ -45,7 +45,7 @@ def vTypeFile(tripsFolder):
     
     VTYPESFILE.close()
 
-def randomTrips(net_filepath, simulationDetails_filepath, tripsFolder):
+def randomTrips(net_filepath, simulationDetails_filepath, tripsFolder, overwrite=True, override_range=False):
 
     parse_simulationDetails = ET.parse(simulationDetails_filepath) # Use the XML parser to read the net XML file
     simDetails = parse_simulationDetails.getroot()
@@ -57,6 +57,9 @@ def randomTrips(net_filepath, simulationDetails_filepath, tripsFolder):
         begin = int(simulation.attrib["begin"])
         end = int(simulation.attrib["end"])
         runs = int(simulation.attrib["runs"])
+
+
+
         if "minTripDistance" in simulation.keys() : minDistance = int(simulation.attrib["minTripDistance"])
         if "maxTripDistance" in simulation.keys() : 
             maxDistance = int(simulation.attrib["maxTripDistance"])
@@ -65,6 +68,9 @@ def randomTrips(net_filepath, simulationDetails_filepath, tripsFolder):
         if "fringeFactor" in simulation.keys() : fringeFactor = float(simulation.attrib["fringeFactor"])
         
         for ii in range(0,runs):
+
+            if override_range:
+                if carGenRate not in override_range: break
             
             trips_filepath = ("%s/%s-CGR-%.2f-PEN-0.00-%d.trip.xml" % (tripsFolder, networkID, carGenRate, ii))
             
@@ -101,7 +107,7 @@ def duaRouter(net_filepath, vtypes_filepath, simulationDetails_filepath, tripsFo
             
             if trips_filepath not in trips:
                 trips.append(trips_filepath)                
-                duaCommand = ('%s -n %s -t %s -d %s -o %s --remove-loops --repair --ignore-errors' % (os.environ['DUAROUTER_BINARY'], net_filepath, trips_filepath, vtypes_filepath, routes_filepath))
+                duaCommand = ('%s -n %s -t %s -d %s -o %s --repair --ignore-errors' % (os.environ['DUAROUTER_BINARY'], net_filepath, trips_filepath, vtypes_filepath, routes_filepath))
                 duaProcess = subprocess.Popen(duaCommand, shell=True, stdout=sys.stdout, stderr=sys.stderr)
                 duaProcess.wait()
 
@@ -243,3 +249,59 @@ def addVehTypesToTrips(tripsFolder_path, vType="HumanStandard"):
                 trip.set("type", vType)
                       
             parse_basicTrips.write(filepath)
+
+def create_sumo_config_file(config_file_filepath, net_file, route_files, additional_files, begin, end, step_length, trip_file, summary_file, queues_file):
+
+    CONFIG_FILE = open(config_file_filepath, 'w')
+
+    print("""<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo-sim.org/xsd/sumoConfiguration.xsd">
+
+    <input>
+        <net-file value="%s"/>
+        <route-files value="%s"/>
+        <additional-files value="%s"/>
+    </input>
+
+    <processing>
+        <time-to-teleport value="-1"/>
+        <lanechange.allow-swap value="true"/>
+        <routing-algorithm value="dijkstra"/>
+    </processing>
+
+    <time>
+        <begin value="%d"/>
+        <end value="%d"/>
+        <step-length value="%f"/>
+    </time>
+
+    <output>
+        <tripinfo value="%s"/>
+        <summary value="%s"/>
+    </output>
+
+    <emissions>
+        <device.emissions.probability value="1"/>
+    </emissions>
+
+    <report>
+        <verbose value="true"/>
+    </report>
+
+</configuration>""" % (net_file, route_files, additional_files, begin, end, step_length, trip_file, summary_file ), file=CONFIG_FILE)
+
+    CONFIG_FILE.close()
+
+def gen_edge_measurements_additional_file(additional_file_directory, output_file_directory, batch_id, run, **kwargs):
+
+    ADDITIONAL = open('%s/SUMO_Input_Files/Additionals/%s-%d.add.xml' % (additional_file_directory, batch_id, run), 'w')
+
+    edge_output_file = "%s/SUMO_Output_Files/Edges/Edge-%s-%d.xml" % (output_file_directory, batch_id, run)
+
+    print('<additional>', file=ADDITIONAL)
+    print('\t<edgeData id="%s-%d" file="%s"' % (batch_id, run, edge_output_file), end='', file=ADDITIONAL)
+    for entry in kwargs:
+        print(' %s="%s"' % (entry, str(kwargs[entry])), end='', file=ADDITIONAL)
+    print('/>', file=ADDITIONAL)
+    print('</additional>', file=ADDITIONAL)
+
+

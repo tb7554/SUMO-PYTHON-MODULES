@@ -43,9 +43,11 @@ class vehObjContainer():
         #self.routerObj = vehicleRouter.createRouterObject(sumolibNet) # The vehicle routing object which decides on the best route for a vehicle to take
         self.loop_ids = loop_ids # Array of induction loops ids, to notify when a vehicle is approaching a junction
         self.CBR_alpha = CBR_alpha
-    
+
     # add a vehicle to the container
-    def addVeh(self, vehID, vehType, route):
+    def addVeh(self, vehID):
+        route = traci.vehicle.getRoute(vehID)
+        vehType = traci.vehicle.getTypeID(vehID)
         end_edge = route.pop()
         destination = end_edge
 
@@ -55,23 +57,21 @@ class vehObjContainer():
             router_mode = None
         else:
             router_mode = None
-            print("Warning, vehicle type not identified and incorrect router (%s) may have been assigned to vehicle type %s" % (router_mode, vehType))
+            print(
+            "Warning, vehicle type not identified and incorrect router (%s) may have been assigned to vehicle type %s" % (
+            router_mode, vehType))
 
-        self.container.update({vehID : vehObj(destination, router_mode, self.CBR_alpha)})
-    
+        self.container.update({vehID: vehObj(destination, router_mode, self.CBR_alpha)})
+
     # remove a vehicle from the container
     def remVeh(self, vehID):
         del self.container[vehID]
-        
+
     def updateVehicles(self):
         arrived = traci.simulation.getArrivedIDList()
         departed = traci.simulation.getDepartedIDList()
-        for veh in arrived:
-            self.remVeh(veh)
-        for veh in departed:
-            vehRoute = traci.vehicle.getRoute(veh)
-            vehType = traci.vehicle.getTypeID(veh)
-            self.addVeh(veh, vehType, vehRoute)
+        map(self.remVeh, arrived)
+        map(self.addVeh, departed)
             
     def vehiclesApproachingJunctions(self):
         vehicles_approaching_junctions = {} 

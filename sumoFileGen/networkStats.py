@@ -98,5 +98,5 @@ class netStatsClass:
 
 if __name__ == "__main__":
     
-    netStatsCalculator = netStatsClass("/Users/tb7554/workspace/_104_Random_/netXMLFiles/Random-100x4.net.xml")    
+    netStatsCalculator = netStatsClass("/Users/tb7554/PyCharmProjects/NetworkRestructuring/Smallworld-1-Lane-TLS.net.xml")
     netStatsCalculator.printStats()

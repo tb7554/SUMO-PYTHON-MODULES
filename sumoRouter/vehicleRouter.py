@@ -9,6 +9,7 @@ Class and associated functions to perform all routing algorithms on the network.
 """
 from __future__ import print_function
 import math
+import random
 from random import randint
 from sumoRouter import edgeOccupancies
 
@@ -64,19 +65,19 @@ class createRouterObject():
         ccValues = {"max_traveltime" : max_traveltime, "max_element_time" : max_element_time}
     
         return ccValues
-    
-    def selfLoopChecker(self, route_by_junctions):
+
+    def selfLoopChecker(self, starting_edge, route):
 
         selfLoop = False
-        if len(route_by_junctions) == 1:
+        if len(route) == 2:
             return selfLoop
         else:
-            while route_by_junctions:
-                junc = route_by_junctions.pop(0)
-                if junc in route_by_junctions:
-                    selfLoop = True         
+            fromNode = starting_edge.getFromNode()
+            toNode = starting_edge.getToNode()
+            edge_2 = route.pop(1)
+            if edge_2 == ("%sto%s" % (toNode, fromNode)): selfLoop = True
         return selfLoop
-    
+
     def coverageBasedRoutingTime(self, starting_edge, ending_edge, alpha):
         
         sigma = 10
@@ -105,12 +106,8 @@ class createRouterObject():
                 
                 # Combine the two costs using the tuning parameter alpha
                 total_cost = alpha*time_based_cost + (1 - alpha)*occupancy_based_cost
-                
-                route_by_junctions = []
-                for junc in route:
-                    route_by_junctions.append(junc)
-    
-                if self.selfLoopChecker(route_by_junctions):
+
+                if self.selfLoopChecker(self.net.getEdge(starting_edge), route[:]):
                     total_cost = 999
             else:
                 total_cost = 999
@@ -124,12 +121,46 @@ class createRouterObject():
         self.clearRouteChoicesContainer()
 
         return best_route
+
+    def q_learning_flow_distribution_routing(self, starting_edge, ending_edge, alpha):
+
+        best_route = [starting_edge]
+
+        routes = []
+        route_traveltimes = []
+        occ_costs = []
+        cost_function = []
+
+        for road_choice in self.net.getEdge(starting_edge).getOutgoing():
+            road_choice_ID = road_choice.getID()
+            route_traveltime = self.shortestPaths.getPathCost(road_choice_ID, ending_edge)
+
+            if route_traveltime != float("inf"):
+                routes.append(self.shortestPaths.getPath(road_choice_ID, ending_edge))
+                route_traveltimes.append(route_traveltime)
+
+                occupancy_of_edge = self.edgeOccs.getEdgeOccupancyByID(road_choice_ID)
+                occ_costs.append(occupancy_of_edge**alpha)
+
+        min_traveltime = min(route_traveltimes)
+
+        for index, travel_time in route_traveltimes:
+            route_cost = travel_time/min_traveltime - 1
+            occ_cost = occ_costs[index]
+            cost_function.append(route_cost + occ_cost)
+
+        min_cost_routes = [routes[ii] for ii,x in cost_function if x == min(cost_function)]
+
+        best_route.extend(random.choice(min_cost_routes))
+
+        return best_route
     
     def route(self, router_mode, starting_edge, ending_edge, alpha):
         
         if router_mode == "CoverageBasedRouting":
             return self.coverageBasedRoutingTime(starting_edge, ending_edge, alpha)
-        
+        elif router_mode == "Q Learning Flow Distribution":
+            return self.q_learning_flow_distribution_routing(starting_edge, ending_edge, alpha)
         else:
             print("No recognised routing method given. Defaulting to routing using Dijkstra's algorithm.")
             return self.dijkstra(starting_edge,  ending_edge)
