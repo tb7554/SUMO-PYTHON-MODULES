@@ -152,21 +152,23 @@ class IntersectionController:
             for index in self.get_indicies_of_incoming_lane(lane):
                 self.set_queue_length_by_link_index(index, value)
 
-    def update_capacities(self):
+    def update_capacities(self, min_gap=2.5):
         """Updates self._Cs with the capacity of the outgoing lanes"""
         for lane in self.get_outgoing_lanes_by_index_array():
             vehLength = traci.lane.getLastStepLength(lane)
             if vehLength:
-                laneLength = traci.lane.getLength(lane)
+                laneLength = int(traci.lane.getLength(lane))
                 vehCount = traci.lane.getLastStepVehicleNumber(lane)
-                spaces_total = int(laneLength / (vehLength + 0.31))
+                spaces_total = int(laneLength / (vehLength + min_gap))
             else:
-                laneLength = traci.lane.getLength(lane)
+                laneLength = int(traci.lane.getLength(lane))
                 vehCount = traci.lane.getLastStepVehicleNumber(lane)
-                spaces_total = int(laneLength / (4 + (0.31)))
+                spaces_total = int(laneLength / (4 + (min_gap)))
             for index in self.get_indicies_of_outgoing_lane(lane):
                 self._outgoing_lanes_queues_by_link_index[index] = vehCount
-                self._outgoing_lane_capacities_by_link_index[index] = spaces_total - vehCount
+                remaining_capacity = spaces_total - vehCount
+                if remaining_capacity < 0 : remaining_capacity = 0
+                self._outgoing_lane_capacities_by_link_index[index] = remaining_capacity
 
     def update_b_compare(self):
 
@@ -524,7 +526,7 @@ class IntersectionControllerContainer:
 
         self._intersection_controller_container[tls_id] = new_ic
 
-    def add_intersection_controllers_from_net_file(self, net_file, x_star, green_time_controller, queue_controller, step_length, default_amber_phase_length=4):
+    def add_intersection_controllers_from_net_file(self, net_file, x_star, green_time_controller, queue_controller, step_length, default_amber_phase_length=4, exclude=[]):
         """Read a net file and create intersection controllers for every traffic light controlled intersection
         add a green time controller and a queue controller for each traffic light"""
 
@@ -535,16 +537,17 @@ class IntersectionControllerContainer:
         TLS_IDs = TLS_L.keys()
 
         for tls_id in TLS_IDs:
-            inc_lanes_by_index = TLS_in_lanes[tls_id]
-            out_lanes_by_index = TLS_out_lanes[tls_id]
-            phase_matrix_by_link_index = TLS_L[tls_id]
-            phase_strings = TLS_phases[tls_id]
-            dirs = TLS_dirs[tls_id]
-            lane2index = TLS_lane2index[tls_id]
+            if tls_id not in exclude:
+                inc_lanes_by_index = TLS_in_lanes[tls_id]
+                out_lanes_by_index = TLS_out_lanes[tls_id]
+                phase_matrix_by_link_index = TLS_L[tls_id]
+                phase_strings = TLS_phases[tls_id]
+                dirs = TLS_dirs[tls_id]
+                lane2index = TLS_lane2index[tls_id]
 
-            self.add_intersection_controller(tls_id, inc_lanes_by_index, out_lanes_by_index,
-                                             phase_matrix_by_link_index, phase_strings, x_star,
-                                             green_time_controller, queue_controller, dirs, lane2index, step_length, default_amber_phase_length=default_amber_phase_length)
+                self.add_intersection_controller(tls_id, inc_lanes_by_index, out_lanes_by_index,
+                                                 phase_matrix_by_link_index, phase_strings, x_star,
+                                                 green_time_controller, queue_controller, dirs, lane2index, step_length, default_amber_phase_length=default_amber_phase_length)
 
     def update_intersection_controllers(self, step, step_length):
         for intersection_controller in self._intersection_controller_container.itervalues():
