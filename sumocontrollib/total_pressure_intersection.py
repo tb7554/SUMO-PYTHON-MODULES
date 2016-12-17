@@ -277,12 +277,12 @@ if __name__ == "__main__":
 
     end_step = 7200
     step_length = 0.1
-    green_stage_length = 5 # Steps between computing the force driving each traffic light phase
+    green_stage_length = 10 # Steps between computing the force driving each traffic light phase
     amber_stage_length = 4
     counter = green_stage_length # Counters used to track when calculation should be done
 
     # net file
-    net_file = "/Users/tb7554/PyCharmProjects/_611_Smallworld_/Net_XML_Files/Smallworld-10x10-1-Lane-TLS.net.xml"
+    net_file = "/Users/tb7554/PyCharmProjects/_618_Smallworld_Debug_/Net_XML_Files/Smallworld-10x10-1-Lane-TLS.net.xml"
 
     # sumolib net object
     network = net.readNet(net_file, withConnections=True, withPrograms=True)
@@ -331,7 +331,7 @@ if __name__ == "__main__":
 
     traci_port = checkPorts.getOpenPort()
     sumoCommand = (
-    "sumo-gui -n /Users/tb7554/PyCharmProjects/_611_Smallworld_/Net_XML_Files/Smallworld-10x10-1-Lane-TLS.net.xml -r /Users/tb7554/PyCharmProjects/_611_Smallworld_/SUMO_Input_Files/Routes/Smallworld-10x10-1-Lane-TLS-CGR-1.50-PEN-0.00-1.rou.xml --remote-port %d --step-length %.2f"
+    "sumo-gui -n /Users/tb7554/PyCharmProjects/_618_Smallworld_Debug_/Net_XML_Files/Smallworld-10x10-1-Lane-TLS.net.xml -r /Users/tb7554/PyCharmProjects/_618_Smallworld_Debug_/SUMO_Input_Files/Routes/Smallworld-10x10-1-Lane-TLS-CGR-1.40-PEN-0.00-0.rou.xml --remote-port %d --step-length %.2f"
     % (traci_port, step_length))
 
     sumoProcess = subprocess.Popen(sumoCommand, shell=True, stdout=sys.stdout, stderr=sys.stderr)

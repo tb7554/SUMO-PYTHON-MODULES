@@ -264,14 +264,14 @@ def uncontrolled_intersections_main(batch_id, net_id, begin_step, end_step, step
     sumoProcess = subprocess.Popen(sumoCommand, shell=True, stdout=sys.stdout, stderr=sys.stderr)
     sumoProcess.wait()
 
-def controlled_intersections_main_with_sumocfg_file(batch_id, run, net_id, end_step, step_length, queue_controller, green_time_controller, target_frac, guiOn=False, exclude=[], **kwargs):
+def controlled_intersections_main_with_sumocfg_file(batch_id, run, net_id, end_step, step_length, queue_controller, green_time_controller, target_frac, guiOn=False, exclude=[], sumo_options=[], **kwargs):
 
     if queue_controller == "MaxBoundedQueue":
         queue_control = ctrl.CongestionDemandOptimisingQueueController()
     elif queue_controller == "CongestionAware":
         queue_control = ctrl.CongestionAwareLmaxQueueController()
     elif queue_controller == "CapacityAware":
-        queue_control = ctrl.CongestionAwareLmaxQueueController()
+        queue_control = ctrl.CongestionDemandOptimisingQueueController()
     else:
         print("Unknown queue controller. Update code options in runSim.py")
 
@@ -300,6 +300,10 @@ def controlled_intersections_main_with_sumocfg_file(batch_id, run, net_id, end_s
     traci_port = checkPorts.getOpenPort()
     sumoCommand = ("%s -c %s --remote-port %d" % \
     (sumoBinary, sumo_config_file, traci_port))
+
+    for option in sumo_options:
+        sumoCommand += " "
+        sumoCommand += str(option)
 
     sumoProcess = subprocess.Popen(sumoCommand, shell=True, stdout=sys.stdout, stderr=sys.stderr)
     print("Launched process: %s" % sumoCommand)
@@ -352,13 +356,9 @@ def controlled_intersections_main_with_sumocfg_file(batch_id, run, net_id, end_s
     removal_process.wait()
 
     edge_file = ("%s/SUMO_Output_Files/Edges/Edge-%s-%d.xml" % (os.environ['DIRECTORY_PATH'], batch_id, run))
-    xml2csv_edge_command = ("%s -x %s -s , %s" % (os.environ['XML2CSV_PYTHON'], os.environ['XML_SCHEMA_EDGE'], edge_file))
+    xml2csv_edge_command = ("%s -s , %s" % (os.environ['XML2CSV_PYTHON'], edge_file))
     xml2csv_process = subprocess.Popen(xml2csv_edge_command, shell=True, stdout=sys.stdout, stderr=sys.stderr)
     xml2csv_process.wait()
-
-    remove_edge_command = ("rm %s" % (edge_file))
-    removal_process = subprocess.Popen(remove_edge_command, shell=True, stdout=sys.stdout, stderr=sys.stderr)
-    removal_process.wait()
 
     intersection_controller_object_save_location = \
         ("%s/SUMO_Output_Files/Intersection_Controller_Objects/Intersection_Controller-%s-%d"
@@ -425,9 +425,5 @@ def uncontrolled_intersections_main_with_sumo_config_file(batch_id, run, end_ste
     xml2csv_edge_command = ("%s -s , %s" % (os.environ['XML2CSV_PYTHON'], edge_file))
     xml2csv_process = subprocess.Popen(xml2csv_edge_command, shell=True, stdout=sys.stdout, stderr=sys.stderr)
     xml2csv_process.wait()
-
-    remove_edge_command = ("rm %s" % (edge_file))
-    removal_process = subprocess.Popen(remove_edge_command, shell=True, stdout=sys.stdout, stderr=sys.stderr)
-    removal_process.wait()
 
 
